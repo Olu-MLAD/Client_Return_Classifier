@@ -52,7 +52,7 @@ time_since_last_pickup = int(st.sidebar.number_input("Time Since Last Pickup", m
 hamper_confirmation_type = int(st.sidebar.number_input("Hamper Confirmation Type", min_value=0, value=1))
 preferred_contact_methods = int(st.sidebar.number_input("Preferred Contact Methods", min_value=0, value=1))
 status = int(st.sidebar.number_input("Client Status", min_value=0, value=1))
-sex_new = int(st.sidebar.number_input("Sex (Encoded)", min_value=0, value=1))
+sex_new = int(st.sidebar.number_input("Sex", min_value=0, value=1))
 new_age_years = int(st.sidebar.number_input("Age in Years", min_value=0, value=35))
 hamper_demand_lag_30 = int(st.sidebar.number_input("Hamper Demand Lag 30 Days", min_value=0, value=2))
 latest_contact_method = int(st.sidebar.number_input("Latest Contact Method", min_value=0, value=1))
