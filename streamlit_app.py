@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 # Set page configuration
 st.set_page_config(layout="wide", page_title="Client Retention Prediction", page_icon="📊")
 
-# Custom CSS for styling
+# Custom CSS for improved styling
 st.markdown(
     """
     <style>
@@ -19,7 +19,7 @@ st.markdown(
         font-weight: bold;
     }
     .section-title {
-        color: #33AAFF;
+        color: #003366;
         font-size: 28px;
         font-weight: bold;
     }
@@ -32,17 +32,20 @@ st.markdown(
         background-color: #FF5733;
         color: white;
         border-radius: 10px;
-        padding: 10px 20px;
+        font-size: 16px;
+        font-weight: bold;
     }
-    .stImage img {
-        border-radius: 10px;
+    .prediction-result {
+        color: #FF5733;
+        font-size: 24px;
+        font-weight: bold;
     }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-# Load and Display Logos in a Row
+# Load and Display Logos Side by Side
 col1, col2, _ = st.columns([0.15, 0.15, 0.7])  
 with col1:
     st.image("logo1.jpeg", width=120)  
@@ -64,29 +67,26 @@ if page == "About the Project":
     st.write(
         "The Islamic Family & Social Services Association (IFSSA) is a social service organization based in Edmonton, Alberta, Canada. "
         "It provides a range of community services, such as food hampers, crisis support, and assistance for refugees. "
-        "This project aims to use artificial intelligence to improve operations and efficiently tailor their efforts."
+        "The organization aims to use artificial intelligence to improve their operations and efficiently tailor their efforts to support "
+        "the community by addressing challenges faced in the areas of inventory management, resource allocation, and delayed/inconsistent "
+        "information shared with stakeholders."
     )
-    
     st.markdown("<h2 class='section-title'>Problem Statement</h2>", unsafe_allow_html=True)
     st.write(
-        "This project aims to classify clients based on whether they are likely to return to use IFSSA services within 3 months. "
+        "This project aims to classify clients based on whether they are likely to return to use IFSSA services within a 3-month timeframe. "
         "By identifying client behavior patterns, IFSSA can improve outreach efforts and optimize resource planning."
     )
-    
     st.markdown("<h2 class='section-title'>Project Goals</h2>", unsafe_allow_html=True)
-    goals = [
-        "Identify patterns in client behavior for data-driven decision-making.",
-        "Develop a predictive model to forecast client return likelihood.",
-        "Enhance resource allocation and operational efficiency."
-    ]
-    for goal in goals:
-        st.write(f"✅ {goal}")
+    st.write("✅ Identify patterns in client behavior for data-driven decision-making.")
+    st.write("✅ Develop a predictive model to forecast client return likelihood.")
+    st.write("✅ Enhance resource allocation and operational efficiency.")
 
 # ================== Exploratory Data Analysis ==================
 elif page == "Exploratory Data Analysis":
     st.markdown("<h2 class='section-title'>Exploratory Data Analysis</h2>", unsafe_allow_html=True)
     st.write("Exploring the dataset to understand structure, patterns, and insights.")
     
+    # Display Pre-generated Charts
     chart_paths = [f"chart{i}.png" for i in range(1, 8)]
     cols = st.columns(2)
     for idx, chart_path in enumerate(chart_paths):
@@ -131,5 +131,4 @@ elif page == "Prediction Section":
             st.error("❌ No trained model found. Please upload a valid model.")
         else:
             prediction = model.predict(input_data)
-            st.markdown("<h3 style='color: #ff33aa;'>Prediction Result</h3>", unsafe_allow_html=True)
-            st.write(f"🎉 **Predicted Outcome:** {int(prediction[0])}")
+            st.markdown("<h3 class='prediction-result'>🎉 Predicted Outcome: {}</h3>".format(int(prediction[0])), unsafe_allow_html=True)
