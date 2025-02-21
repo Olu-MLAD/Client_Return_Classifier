@@ -26,31 +26,33 @@ st.title("Client Retention Prediction App")
 # Load Model
 model = load_model()
 if model is None:
-    st.error("No trained model found. Please upload a trained model to 'models/model.pkl'.")
-else:
-    st.sidebar.header("Input Features")
-    
-    # Relevant input fields based on feature importance
-    time_since_last_pickup = st.sidebar.number_input("Time Since Last Pickup", min_value=0.0, value=10.0)
-    hamper_confirmation_type = st.sidebar.number_input("Hamper Confirmation Type", min_value=0.0, value=1.0)
-    preferred_contact_methods = st.sidebar.number_input("Preferred Contact Methods", min_value=0.0, value=1.0)
-    status = st.sidebar.number_input("Client Status", min_value=0.0, value=1.0)
-    sex_new = st.sidebar.number_input("Sex (Encoded)", min_value=0.0, value=1.0)
-    new_age_years = st.sidebar.number_input("Age in Years", min_value=0.0, value=35.0)
-    hamper_demand_lag_30 = st.sidebar.number_input("Hamper Demand Lag 30 Days", min_value=0.0, value=2.0)
-    latest_contact_method = st.sidebar.number_input("Latest Contact Method", min_value=0.0, value=1.0)
-    dependents_qty = st.sidebar.number_input("Dependents Quantity", min_value=0.0, value=3.0)
-    household = st.sidebar.number_input("Household Size", min_value=0.0, value=4.0)
-    contact_frequency = st.sidebar.number_input("Contact Frequency", min_value=0.0, value=5.0)
-    
-    input_data = pd.DataFrame([[time_since_last_pickup, hamper_confirmation_type, preferred_contact_methods, 
-                                status, sex_new, new_age_years, hamper_demand_lag_30, latest_contact_method, 
-                                dependents_qty, household, contact_frequency]], 
-                              columns=['time_since_last_pickup', 'hamper_confirmation_type', 'preferred_contact_methods', 
-                                       'status', 'sex_new', 'new_age_years', 'hamper_demand_lag_30', 'latest_contact_method', 
-                                       'dependents_qty', 'household', 'contact_frequency'])
-    
-    if st.sidebar.button("Predict"):
+    st.error("⚠️ No trained model found. Please upload a trained model to 'models/model.pkl'.")
+
+# Sidebar Inputs
+st.sidebar.header("Input Features")
+time_since_last_pickup = st.sidebar.number_input("Time Since Last Pickup", min_value=0.0, value=10.0)
+hamper_confirmation_type = st.sidebar.number_input("Hamper Confirmation Type", min_value=0.0, value=1.0)
+preferred_contact_methods = st.sidebar.number_input("Preferred Contact Methods", min_value=0.0, value=1.0)
+status = st.sidebar.number_input("Client Status", min_value=0.0, value=1.0)
+sex_new = st.sidebar.number_input("Sex (Encoded)", min_value=0.0, value=1.0)
+new_age_years = st.sidebar.number_input("Age in Years", min_value=0.0, value=35.0)
+hamper_demand_lag_30 = st.sidebar.number_input("Hamper Demand Lag 30 Days", min_value=0.0, value=2.0)
+latest_contact_method = st.sidebar.number_input("Latest Contact Method", min_value=0.0, value=1.0)
+dependents_qty = st.sidebar.number_input("Dependents Quantity", min_value=0.0, value=3.0)
+household = st.sidebar.number_input("Household Size", min_value=0.0, value=4.0)
+contact_frequency = st.sidebar.number_input("Contact Frequency", min_value=0.0, value=5.0)
+
+input_data = pd.DataFrame([[time_since_last_pickup, hamper_confirmation_type, preferred_contact_methods, 
+                            status, sex_new, new_age_years, hamper_demand_lag_30, latest_contact_method, 
+                            dependents_qty, household, contact_frequency]], 
+                          columns=['time_since_last_pickup', 'hamper_confirmation_type', 'preferred_contact_methods', 
+                                   'status', 'sex_new', 'new_age_years', 'hamper_demand_lag_30', 'latest_contact_method', 
+                                   'dependents_qty', 'household', 'contact_frequency'])
+
+if st.sidebar.button("Predict"):
+    if model is None:
+        st.error("❌ Prediction failed: No trained model found. Please upload a valid model to 'models/model.pkl'.")
+    else:
         prediction = model.predict(input_data)
         st.write("### Prediction Result")
         st.write(f"Predicted Outcome: {prediction[0]}")
