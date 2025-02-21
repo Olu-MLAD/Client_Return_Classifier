@@ -19,7 +19,7 @@ st.markdown(
         font-weight: bold;
     }
     .section-title {
-        color: #003366;
+        color: #001F3F;
         font-size: 28px;
         font-weight: bold;
     }
@@ -29,7 +29,7 @@ st.markdown(
         font-weight: bold;
     }
     .stButton>button {
-        background-color: #FF5733;
+        background-color: #001F3F;
         color: white;
         border-radius: 10px;
         font-size: 16px;
