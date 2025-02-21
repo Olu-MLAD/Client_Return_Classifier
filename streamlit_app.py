@@ -47,7 +47,7 @@ if model is None:
     st.error("⚠️ No trained model found. Please upload a trained model to 'models/model.pkl'.")
 
 # Sidebar Inputs
-st.sidebar.markdown("<h2 style='color: #ff9933;'>Input Features</h2>", unsafe_allow_html=True)
+st.sidebar.markdown("<h2 style='color: #ff5733;'>Input Features</h2>", unsafe_allow_html=True)
 time_since_last_pickup = st.sidebar.number_input("Time Since Last Pickup", min_value=0.0, value=10.0)
 hamper_confirmation_type = st.sidebar.number_input("Hamper Confirmation Type", min_value=0.0, value=1.0)
 preferred_contact_methods = st.sidebar.number_input("Preferred Contact Methods", min_value=0.0, value=1.0)
