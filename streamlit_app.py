@@ -84,7 +84,7 @@ elif page == "Exploratory Data Analysis":
             st.image(chart_path, caption=f"Chart {idx + 1}", use_container_width=True)  # Fixed deprecation warning
 
 # ================== Prediction Section ==================
-elif page == "Prediction Section (for feature input)":
+elif page == "Prediction Section":
     st.markdown("<h2 style='color: #33aaff;'>Prediction Section</h2>", unsafe_allow_html=True)
 
     # Load Model Function
