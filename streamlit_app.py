@@ -40,6 +40,11 @@ st.markdown(
         font-size: 24px;
         font-weight: bold;
     }
+    .section-background {
+        background-color: #F0F8FF;
+        padding: 20px;
+        border-radius: 10px;
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -63,6 +68,7 @@ page = st.sidebar.radio(
 
 # ================== About the Project ==================
 if page == "About the Project":
+    st.markdown("<div class='section-background'>", unsafe_allow_html=True)
     st.markdown("<h2 class='section-title'>Introduction</h2>", unsafe_allow_html=True)
     st.write(
         "The Islamic Family & Social Services Association (IFSSA) is a social service organization based in Edmonton, Alberta, Canada. "
@@ -80,9 +86,11 @@ if page == "About the Project":
     st.write("✅ Identify patterns in client behavior for data-driven decision-making.")
     st.write("✅ Develop a predictive model to forecast client return likelihood.")
     st.write("✅ Enhance resource allocation and operational efficiency.")
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # ================== Exploratory Data Analysis ==================
 elif page == "Exploratory Data Analysis":
+    st.markdown("<div class='section-background'>", unsafe_allow_html=True)
     st.markdown("<h2 class='section-title'>Exploratory Data Analysis</h2>", unsafe_allow_html=True)
     st.write("Exploring the dataset to understand structure, patterns, and insights.")
     
@@ -92,9 +100,11 @@ elif page == "Exploratory Data Analysis":
     for idx, chart_path in enumerate(chart_paths):
         with cols[idx % 2]:
             st.image(chart_path, caption=f"Chart {idx + 1}", use_container_width=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # ================== Prediction ==================
 elif page == "Prediction":
+    st.markdown("<div class='section-background'>", unsafe_allow_html=True)
     st.markdown("<h2 class='section-title'>Prediction</h2>", unsafe_allow_html=True)
     
     def load_model():
@@ -132,3 +142,4 @@ elif page == "Prediction":
         else:
             prediction = model.predict(input_data)
             st.markdown("<h3 class='prediction-result'>🎉 Predicted Outcome: {}</h3>".format(int(prediction[0])), unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
