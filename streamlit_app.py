@@ -3,7 +3,18 @@ import pandas as pd
 import joblib
 import os
 
-# Problem Statement
+# Set page configuration
+st.set_page_config(layout="wide")
+
+# Load and Display Logos
+col1, col2 = st.columns([0.2, 0.8])  # Adjust proportions as needed
+with col1:
+    st.image("logo1.png", width=100)  # Update with actual file path
+    st.image("logo2.png", width=100)
+
+# Title and Problem Statement
+st.title("Client Retention Prediction App")
+
 st.markdown("## Problem Statement")
 st.write("The IFSSA (Islamic Family and Social Services Association) struggles to predict when and how many clients will return to get hampers, leading to challenges in inventory management, resource allocation, and client retention strategies. This uncertainty affects operational efficiency and limits the ability to tailor the organization’s efforts effectively.")
 
@@ -19,9 +30,6 @@ def load_model():
     if os.path.exists(model_path):
         return joblib.load(model_path)
     return None
-
-# Streamlit UI
-st.title("Client Retention Prediction App")
 
 # Load Model
 model = load_model()
