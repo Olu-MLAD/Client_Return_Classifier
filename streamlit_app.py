@@ -29,7 +29,7 @@ st.write(
 )
 
 # Project Goals with Color
-st.markdown("<h2 style='color: #33cc33;'>Project Goals</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='color: #33aaff ;'>Project Goals</h2>", unsafe_allow_html=True)
 st.write("✅ Identify patterns in customer behavior and historical data to support decision-making.")
 st.write("✅ Develop a machine learning model to predict whether clients will return within a specified time frame.")
 st.write("✅ Improve operational efficiency by enabling better inventory management and resource planning.")
