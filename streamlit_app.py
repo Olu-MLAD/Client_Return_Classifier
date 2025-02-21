@@ -58,7 +58,7 @@ st.markdown("<h1 class='main-title'>Client Retention Prediction App (MVP)</h1>",
 st.sidebar.markdown("<h2 class='sidebar-title'>Navigation</h2>", unsafe_allow_html=True)
 page = st.sidebar.radio(
     "Go to",
-    ["About the Project", "Exploratory Data Analysis", "Prediction Section"]
+    ["About the Project", "Exploratory Data Analysis", "Prediction"]
 )
 
 # ================== About the Project ==================
@@ -93,9 +93,9 @@ elif page == "Exploratory Data Analysis":
         with cols[idx % 2]:
             st.image(chart_path, caption=f"Chart {idx + 1}", use_container_width=True)
 
-# ================== Prediction Section ==================
-elif page == "Prediction Section":
-    st.markdown("<h2 class='section-title'>Prediction Section</h2>", unsafe_allow_html=True)
+# ================== Prediction ==================
+elif page == "Prediction":
+    st.markdown("<h2 class='section-title'>Prediction</h2>", unsafe_allow_html=True)
     
     def load_model():
         model_path = "models/model.pkl"
