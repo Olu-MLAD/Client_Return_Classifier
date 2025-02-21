@@ -25,7 +25,7 @@ st.markdown(
 st.sidebar.title("Navigation")
 page = st.sidebar.radio(
     "Go to",
-    ["About the Project", "Exploratory Data Analysis", "Prediction Section (for feature input)"]
+    ["About the Project", "Exploratory Data Analysis", "Prediction"]
 )
 
 # ================== About the Project ==================
@@ -84,7 +84,7 @@ elif page == "Exploratory Data Analysis":
             st.image(chart_path, caption=f"Chart {idx + 1}", use_container_width=True)  # Fixed deprecation warning
 
 # ================== Prediction Section ==================
-elif page == "Prediction Section (for feature input)":
+elif page == "Prediction":
     st.markdown("<h2 style='color: #33aaff;'>Prediction Section</h2>", unsafe_allow_html=True)
 
     # Load Model Function
