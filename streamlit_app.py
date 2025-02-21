@@ -9,7 +9,7 @@ st.set_page_config(layout="wide")
 # Load and Display Logos
 col1, col2 = st.columns([0.2, 0.8])  # Adjust proportions as needed
 with col1:
-    st.image("logo1.png", width=100)  # Update with actual file path
+    st.image("logo1.jpeg", width=100)  # Update with actual file path
     st.image("logo2.png", width=100)
 
 # Title and Problem Statement
