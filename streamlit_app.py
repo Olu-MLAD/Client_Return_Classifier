@@ -40,10 +40,11 @@ st.markdown(
         font-size: 24px;
         font-weight: bold;
     }
-    .section-background {
-        background-color: #F0F8FF;
-        padding: 20px;
-        border-radius: 10px;
+    .text-orange {
+        color: #FF5733;
+    }
+    .text-blue {
+        color: #001F3F;
     }
     </style>
     """,
@@ -68,31 +69,19 @@ page = st.sidebar.radio(
 
 # ================== About the Project ==================
 if page == "About the Project":
-    st.markdown("<div class='section-background'>", unsafe_allow_html=True)
     st.markdown("<h2 class='section-title'>Introduction</h2>", unsafe_allow_html=True)
-    st.write(
-        "The Islamic Family & Social Services Association (IFSSA) is a social service organization based in Edmonton, Alberta, Canada. "
-        "It provides a range of community services, such as food hampers, crisis support, and assistance for refugees. "
-        "The organization aims to use artificial intelligence to improve their operations and efficiently tailor their efforts to support "
-        "the community by addressing challenges faced in the areas of inventory management, resource allocation, and delayed/inconsistent "
-        "information shared with stakeholders."
-    )
+    st.markdown("<p class='text-blue'>The Islamic Family & Social Services Association (IFSSA) is a social service organization based in Edmonton, Alberta, Canada.</p>", unsafe_allow_html=True)
     st.markdown("<h2 class='section-title'>Problem Statement</h2>", unsafe_allow_html=True)
-    st.write(
-        "This project aims to classify clients based on whether they are likely to return to use IFSSA services within a 3-month timeframe. "
-        "By identifying client behavior patterns, IFSSA can improve outreach efforts and optimize resource planning."
-    )
+    st.markdown("<p class='text-orange'>This project aims to classify clients based on whether they are likely to return to use IFSSA services within a 3-month timeframe.</p>", unsafe_allow_html=True)
     st.markdown("<h2 class='section-title'>Project Goals</h2>", unsafe_allow_html=True)
-    st.write("✅ Identify patterns in client behavior for data-driven decision-making.")
-    st.write("✅ Develop a predictive model to forecast client return likelihood.")
-    st.write("✅ Enhance resource allocation and operational efficiency.")
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("<p class='text-blue'>✅ Identify patterns in client behavior for data-driven decision-making.</p>", unsafe_allow_html=True)
+    st.markdown("<p class='text-orange'>✅ Develop a predictive model to forecast client return likelihood.</p>", unsafe_allow_html=True)
+    st.markdown("<p class='text-blue'>✅ Enhance resource allocation and operational efficiency.</p>", unsafe_allow_html=True)
 
 # ================== Exploratory Data Analysis ==================
 elif page == "Exploratory Data Analysis":
-    st.markdown("<div class='section-background'>", unsafe_allow_html=True)
     st.markdown("<h2 class='section-title'>Exploratory Data Analysis</h2>", unsafe_allow_html=True)
-    st.write("Exploring the dataset to understand structure, patterns, and insights.")
+    st.markdown("<p class='text-blue'>Exploring the dataset to understand structure, patterns, and insights.</p>", unsafe_allow_html=True)
     
     # Display Pre-generated Charts
     chart_paths = [f"chart{i}.png" for i in range(1, 8)]
@@ -100,11 +89,9 @@ elif page == "Exploratory Data Analysis":
     for idx, chart_path in enumerate(chart_paths):
         with cols[idx % 2]:
             st.image(chart_path, caption=f"Chart {idx + 1}", use_container_width=True)
-    st.markdown("</div>", unsafe_allow_html=True)
 
 # ================== Prediction ==================
 elif page == "Prediction":
-    st.markdown("<div class='section-background'>", unsafe_allow_html=True)
     st.markdown("<h2 class='section-title'>Prediction</h2>", unsafe_allow_html=True)
     
     def load_model():
@@ -141,5 +128,4 @@ elif page == "Prediction":
             st.error("❌ No trained model found. Please upload a valid model.")
         else:
             prediction = model.predict(input_data)
-            st.markdown("<h3 class='prediction-result'>🎉 Predicted Outcome: {}</h3>".format(int(prediction[0])), unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown("<h3 class='prediction-result'>🎉 Predicted Outcome: <span class='text-orange'>{}</span></h3>".format(int(prediction[0])), unsafe_allow_html=True)
