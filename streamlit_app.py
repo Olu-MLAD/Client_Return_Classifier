@@ -7,9 +7,9 @@ import os
 st.set_page_config(layout="wide")
 
 # Load and Display Logos Side by Side
-col1, col2, _ = st.columns([0.15, 0.15, 0.7])  # Adjust proportions as needed
+col1, col2, _ = st.columns([0.15, 0.15, 0.7])  
 with col1:
-    st.image("logo1.jpeg", width=120)  # Update with actual file path
+    st.image("logo1.jpeg", width=120)  
 with col2:
     st.image("logo2.png", width=120)
 
