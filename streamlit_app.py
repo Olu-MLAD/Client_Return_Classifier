@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 # Set page configuration
 st.set_page_config(layout="wide", page_title="Client Retention Prediction", page_icon="📊")
 
-# Custom CSS for improved styling
+# Custom CSS for styling
 st.markdown(
     """
     <style>
@@ -32,13 +32,17 @@ st.markdown(
         background-color: #FF5733;
         color: white;
         border-radius: 10px;
+        padding: 10px 20px;
+    }
+    .stImage img {
+        border-radius: 10px;
     }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-# Load and Display Logos Side by Side
+# Load and Display Logos in a Row
 col1, col2, _ = st.columns([0.15, 0.15, 0.7])  
 with col1:
     st.image("logo1.jpeg", width=120)  
@@ -60,26 +64,29 @@ if page == "About the Project":
     st.write(
         "The Islamic Family & Social Services Association (IFSSA) is a social service organization based in Edmonton, Alberta, Canada. "
         "It provides a range of community services, such as food hampers, crisis support, and assistance for refugees. "
-        "The organization aims to use artificial intelligence to improve their operations and efficiently tailor their efforts to support "
-        "the community by addressing challenges faced in the areas of inventory management, resource allocation, and delayed/inconsistent "
-        "information shared with stakeholders."
+        "This project aims to use artificial intelligence to improve operations and efficiently tailor their efforts."
     )
+    
     st.markdown("<h2 class='section-title'>Problem Statement</h2>", unsafe_allow_html=True)
     st.write(
-        "This project aims to classify clients based on whether they are likely to return to use IFSSA services within a 3-month timeframe. "
+        "This project aims to classify clients based on whether they are likely to return to use IFSSA services within 3 months. "
         "By identifying client behavior patterns, IFSSA can improve outreach efforts and optimize resource planning."
     )
+    
     st.markdown("<h2 class='section-title'>Project Goals</h2>", unsafe_allow_html=True)
-    st.write("✅ Identify patterns in client behavior for data-driven decision-making.")
-    st.write("✅ Develop a predictive model to forecast client return likelihood.")
-    st.write("✅ Enhance resource allocation and operational efficiency.")
+    goals = [
+        "Identify patterns in client behavior for data-driven decision-making.",
+        "Develop a predictive model to forecast client return likelihood.",
+        "Enhance resource allocation and operational efficiency."
+    ]
+    for goal in goals:
+        st.write(f"✅ {goal}")
 
 # ================== Exploratory Data Analysis ==================
 elif page == "Exploratory Data Analysis":
     st.markdown("<h2 class='section-title'>Exploratory Data Analysis</h2>", unsafe_allow_html=True)
     st.write("Exploring the dataset to understand structure, patterns, and insights.")
     
-    # Display Pre-generated Charts
     chart_paths = [f"chart{i}.png" for i in range(1, 8)]
     cols = st.columns(2)
     for idx, chart_path in enumerate(chart_paths):
