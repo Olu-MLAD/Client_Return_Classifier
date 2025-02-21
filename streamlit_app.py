@@ -1,7 +1,17 @@
 import streamlit as st
 import pandas as pd
 import joblib
-import os 
+import os
+
+# Problem Statement
+st.markdown("## Problem Statement")
+st.write("The IFSSA (Islamic Family and Social Services Association) struggles to predict when and how many clients will return to get hampers, leading to challenges in inventory management, resource allocation, and client retention strategies. This uncertainty affects operational efficiency and limits the ability to tailor the organization’s efforts effectively.")
+
+# Project Goals
+st.markdown("## Project Goals")
+st.write("- Identify patterns in customer behavior and historical data to support decision-making.")
+st.write("- Develop a machine learning model to predict whether clients will return within a specified time frame.")
+st.write("- Improve operational efficiency by enabling better inventory management and resource planning.")
 
 # Load Model Function
 def load_model():
@@ -10,36 +20,37 @@ def load_model():
         return joblib.load(model_path)
     return None
 
-# Load Data Function
-def load_data(uploaded_file):
-    return pd.read_csv(uploaded_file)
-
 # Streamlit UI
 st.title("Client Retention Prediction App")
 
-st.sidebar.header("Upload Dataset")
-uploaded_file = st.sidebar.file_uploader("Upload CSV file", type=["csv"])
-
-if uploaded_file is not None:
-    df = load_data(uploaded_file)
-    st.write("### Data Preview")
-    st.dataframe(df.head())
+# Load Model
+model = load_model()
+if model is None:
+    st.error("No trained model found. Please upload a trained model to 'models/model.pkl'.")
+else:
+    st.sidebar.header("Input Features")
     
-    st.write("### Data Summary")
-    st.write(df.describe())
+    # Relevant input fields based on feature importance
+    time_since_last_pickup = st.sidebar.number_input("Time Since Last Pickup", min_value=0.0, value=10.0)
+    hamper_confirmation_type = st.sidebar.number_input("Hamper Confirmation Type", min_value=0.0, value=1.0)
+    preferred_contact_methods = st.sidebar.number_input("Preferred Contact Methods", min_value=0.0, value=1.0)
+    status = st.sidebar.number_input("Client Status", min_value=0.0, value=1.0)
+    sex_new = st.sidebar.number_input("Sex (Encoded)", min_value=0.0, value=1.0)
+    new_age_years = st.sidebar.number_input("Age in Years", min_value=0.0, value=35.0)
+    hamper_demand_lag_30 = st.sidebar.number_input("Hamper Demand Lag 30 Days", min_value=0.0, value=2.0)
+    latest_contact_method = st.sidebar.number_input("Latest Contact Method", min_value=0.0, value=1.0)
+    dependents_qty = st.sidebar.number_input("Dependents Quantity", min_value=0.0, value=3.0)
+    household = st.sidebar.number_input("Household Size", min_value=0.0, value=4.0)
+    contact_frequency = st.sidebar.number_input("Contact Frequency", min_value=0.0, value=5.0)
     
-    st.write("### Missing Values")
-    st.write(df.isnull().sum())
+    input_data = pd.DataFrame([[time_since_last_pickup, hamper_confirmation_type, preferred_contact_methods, 
+                                status, sex_new, new_age_years, hamper_demand_lag_30, latest_contact_method, 
+                                dependents_qty, household, contact_frequency]], 
+                              columns=['time_since_last_pickup', 'hamper_confirmation_type', 'preferred_contact_methods', 
+                                       'status', 'sex_new', 'new_age_years', 'hamper_demand_lag_30', 'latest_contact_method', 
+                                       'dependents_qty', 'household', 'contact_frequency'])
     
-    model = load_model()
-    if model:
-        st.sidebar.header("Make Predictions")
-        if st.sidebar.button("Predict"):
-            X = df.drop(columns=['target'])  # Adjust column names as needed
-            predictions = model.predict(X)
-            df['Prediction'] = predictions
-            st.write("### Predictions")
-            st.dataframe(df[['Prediction']])
-    else:
-        st.warning("No trained model found. Please upload a trained model to 'models/model.pkl'.")
-
+    if st.sidebar.button("Predict"):
+        prediction = model.predict(input_data)
+        st.write("### Prediction Result")
+        st.write(f"Predicted Outcome: {prediction[0]}")
