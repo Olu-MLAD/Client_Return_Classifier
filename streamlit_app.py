@@ -81,51 +81,7 @@ elif page == "Exploratory Data Analysis":
     cols = st.columns(2)  # 2 columns for the grid
     for idx, chart_path in enumerate(chart_paths):
         with cols[idx % 2]:  # Alternate between columns
-            st.image(chart_path, caption=f"Chart {idx + 1}", use_column_width=True)
-
-    # Upload Dataset for Further Analysis
-    st.write("### Upload Your Dataset for Further Analysis")
-    uploaded_file = st.file_uploader("Upload your dataset (CSV format)", type=["csv"])
-    if uploaded_file is not None:
-        df = pd.read_csv(uploaded_file)
-        st.write("#### Dataset Preview")
-        st.write(df.head())
-
-        # Basic Statistics
-        st.write("#### Basic Statistics")
-        st.write(df.describe())
-
-        # Histograms for Numerical Columns
-        st.write("#### Histograms for Numerical Columns")
-        numerical_columns = df.select_dtypes(include=['int64', 'float64']).columns
-        selected_column = st.selectbox("Select a column to plot", numerical_columns)
-        fig, ax = plt.subplots()
-        sns.histplot(df[selected_column], kde=True, ax=ax)
-        st.pyplot(fig)
-
-        # Correlation Heatmap
-        st.write("#### Correlation Heatmap")
-        fig, ax = plt.subplots(figsize=(10, 8))
-        sns.heatmap(df.corr(), annot=True, cmap='coolwarm', ax=ax)
-        st.pyplot(fig)
-
-        # Pair Plot (for smaller datasets)
-        if len(df) < 1000:  # Limit pair plot to smaller datasets
-            st.write("#### Pair Plot")
-            pair_plot = sns.pairplot(df)
-            st.pyplot(pair_plot)
-        else:
-            st.warning("Pair plot is disabled for large datasets to avoid performance issues.")
-
-        # Categorical Data Analysis
-        st.write("#### Categorical Data Analysis")
-        categorical_columns = df.select_dtypes(include=['object']).columns
-        if len(categorical_columns) > 0:
-            selected_cat_column = st.selectbox("Select a categorical column", categorical_columns)
-            st.write(f"#### Value Counts for {selected_cat_column}")
-            st.write(df[selected_cat_column].value_counts())
-        else:
-            st.write("No categorical columns found in the dataset.")
+            st.image(chart_path, caption=f"Chart {idx + 1}", use_container_width=True)  # Fixed deprecation warning
 
 # ================== Prediction Section ==================
 elif page == "Prediction Section (for feature input)":
