@@ -29,7 +29,7 @@ st.write(
 )
 
 # Project Goals with Color
-st.markdown("<h2 style='color: #33cc33;'>Project Goals</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='color: #33aaff;'>Project Goals</h2>", unsafe_allow_html=True)
 st.write("✅ Identify patterns in customer behavior and historical data to support decision-making.")
 st.write("✅ Develop a machine learning model to predict whether clients will return within a specified time frame.")
 st.write("✅ Improve operational efficiency by enabling better inventory management and resource planning.")
@@ -47,7 +47,7 @@ if model is None:
     st.error("⚠️ No trained model found. Please upload a trained model to 'models/model.pkl'.")
 
 # Sidebar Inputs
-st.sidebar.markdown("<h2 style='color: #ff9933;'>Input Features</h2>", unsafe_allow_html=True)
+st.sidebar.markdown("<h2 style='color: #ff5733;'>Input Features</h2>", unsafe_allow_html=True)
 time_since_last_pickup = int(st.sidebar.number_input("Time Since Last Pickup", min_value=0, value=10))
 hamper_confirmation_type = int(st.sidebar.number_input("Hamper Confirmation Type", min_value=0, value=1))
 preferred_contact_methods = int(st.sidebar.number_input("Preferred Contact Methods", min_value=0, value=1))
