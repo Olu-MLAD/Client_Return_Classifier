@@ -30,12 +30,32 @@ page = st.sidebar.radio(
 
 # ================== About the Project ==================
 if page == "About the Project":
-    st.markdown("<h2 style='color: #33aaff;'>Problem Statement</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='color: #33aaff;'>Introduction</h2>", unsafe_allow_html=True)
     st.write(
-        "The IFSSA (Islamic Family and Social Services Association) struggles to predict "
-        "when and how many clients will return to get hampers, leading to challenges in inventory "
-        "management, resource allocation, and client retention strategies. This uncertainty affects "
-        "operational efficiency and limits the ability to tailor the organization’s efforts effectively."
+        "The Islamic Family & Social Services Association (IFSSA) is a social service organization based in Edmonton, Alberta, Canada. "
+        "It provides a range of community services, such as food hampers, crisis support, and assistance for refugees. "
+        "The organization aims to use artificial intelligence to improve their operations and efficiently tailor their efforts to support "
+        "the community by addressing challenges faced in the areas of inventory management, resource allocation, and delayed/inconsistent "
+        "information shared with stakeholders."
+    )
+    st.write(
+        "We have received a food hamper dataset consisting of two CSV files (Clients Data Dimension and Food Hampers Fact) to analyze and "
+        "build a machine learning model to predict customer churn over a period of time."
+    )
+
+    st.markdown("<h2 style='color: #33aaff;'>Problem Statement (Client Retention Classification)</h2>", unsafe_allow_html=True)
+    st.write(
+        "This problem involves classifying clients to determine if they are likely to return to use IFSSA services within a 3-month time frame. "
+        "By identifying client behavior patterns, IFSSA can plan outreach efforts or adjust services to better meet the needs of its clients, "
+        "ensuring efficient resource use."
+    )
+
+    st.markdown("<h2 style='color: #33aaff;'>Approach</h2>", unsafe_allow_html=True)
+    st.write(
+        "1. Import datasets into pandas dataframe.\n"
+        "2. Visualize datasets to understand structure, patterns, and relationships amongst features.\n"
+        "3. Merge dataframes using a column common to both.\n"
+        "4. Clean data and prepare for feature engineering and modeling (remove duplicates, outliers, and redundant data; handle missing values by filling or removing)."
     )
 
     st.markdown("<h2 style='color: #33aaff;'>Project Goals</h2>", unsafe_allow_html=True)
