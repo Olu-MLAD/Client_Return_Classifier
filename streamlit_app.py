@@ -6,7 +6,44 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 # Set page configuration
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide", page_title="Client Retention Prediction", page_icon="📊")
+
+# Custom CSS for improved styling
+st.markdown(
+    """
+    <style>
+    .main-title {
+        text-align: center;
+        color: #FF5733;
+        font-size: 36px;
+        font-weight: bold;
+    }
+    .section-title {
+        color: #003366;
+        font-size: 28px;
+        font-weight: bold;
+    }
+    .sidebar-title {
+        color: #FF5733;
+        font-size: 22px;
+        font-weight: bold;
+    }
+    .stButton>button {
+        background-color: #FF5733;
+        color: white;
+        border-radius: 10px;
+        font-size: 16px;
+        font-weight: bold;
+    }
+    .prediction-result {
+        color: #FF5733;
+        font-size: 24px;
+        font-weight: bold;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 # Load and Display Logos Side by Side
 col1, col2, _ = st.columns([0.15, 0.15, 0.7])  
@@ -15,22 +52,18 @@ with col1:
 with col2:
     st.image("logo2.png", width=120)
 
-# Colorful Header
-st.markdown(
-    "<h1 style='text-align: center; color: #ff5733;'>Client Retention Prediction App (MVP)</h1>",
-    unsafe_allow_html=True
-)
+st.markdown("<h1 class='main-title'>Client Retention Prediction App (MVP)</h1>", unsafe_allow_html=True)
 
-# ================== Navigation Bar ==================
-st.sidebar.title("Navigation")
+# Sidebar Navigation
+st.sidebar.markdown("<h2 class='sidebar-title'>Navigation</h2>", unsafe_allow_html=True)
 page = st.sidebar.radio(
     "Go to",
-    ["About the Project", "Exploratory Data Analysis", "Prediction Section (for feature input)"]
+    ["About the Project", "Exploratory Data Analysis", "Prediction Section"]
 )
 
 # ================== About the Project ==================
 if page == "About the Project":
-    st.markdown("<h2 style='color: #33aaff;'>Introduction</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 class='section-title'>Introduction</h2>", unsafe_allow_html=True)
     st.write(
         "The Islamic Family & Social Services Association (IFSSA) is a social service organization based in Edmonton, Alberta, Canada. "
         "It provides a range of community services, such as food hampers, crisis support, and assistance for refugees. "
@@ -38,93 +71,64 @@ if page == "About the Project":
         "the community by addressing challenges faced in the areas of inventory management, resource allocation, and delayed/inconsistent "
         "information shared with stakeholders."
     )
+    st.markdown("<h2 class='section-title'>Problem Statement</h2>", unsafe_allow_html=True)
     st.write(
-        "We have received a food hamper dataset consisting of two CSV files (Clients Data Dimension and Food Hampers Fact) to analyze and "
-        "build a machine learning model to predict customer churn over a period of time."
+        "This project aims to classify clients based on whether they are likely to return to use IFSSA services within a 3-month timeframe. "
+        "By identifying client behavior patterns, IFSSA can improve outreach efforts and optimize resource planning."
     )
-
-    st.markdown("<h2 style='color: #33aaff;'>Problem Statement (Client Retention Classification)</h2>", unsafe_allow_html=True)
-    st.write(
-        "This problem involves classifying clients to determine if they are likely to return to use IFSSA services within a 3-month time frame. "
-        "By identifying client behavior patterns, IFSSA can plan outreach efforts or adjust services to better meet the needs of its clients, "
-        "ensuring efficient resource use."
-    )
-
-    st.markdown("<h2 style='color: #33aaff;'>Approach</h2>", unsafe_allow_html=True)
-    st.write(
-        "1. Import datasets into pandas dataframe.\n"
-        "2. Visualize datasets to understand structure, patterns, and relationships amongst features.\n"
-        "3. Merge dataframes using a column common to both.\n"
-        "4. Clean data and prepare for feature engineering and modeling (remove duplicates, outliers, and redundant data; handle missing values by filling or removing)."
-    )
-
-    st.markdown("<h2 style='color: #33aaff;'>Project Goals</h2>", unsafe_allow_html=True)
-    st.write("✅ Identify patterns in customer behavior and historical data to support decision-making.")
-    st.write("✅ Develop a machine learning model to predict whether clients will return within a specified time frame.")
-    st.write("✅ Improve operational efficiency by enabling better inventory management and resource planning.")
+    st.markdown("<h2 class='section-title'>Project Goals</h2>", unsafe_allow_html=True)
+    st.write("✅ Identify patterns in client behavior for data-driven decision-making.")
+    st.write("✅ Develop a predictive model to forecast client return likelihood.")
+    st.write("✅ Enhance resource allocation and operational efficiency.")
 
 # ================== Exploratory Data Analysis ==================
 elif page == "Exploratory Data Analysis":
-    st.markdown("<h2 style='color: #33aaff;'>Exploratory Data Analysis (EDA)</h2>", unsafe_allow_html=True)
-
-    # Introduction to EDA
-    st.write(
-        "In this section, we explore the dataset to understand its structure, identify patterns, "
-        "and visualize key insights. Below are some pre-generated charts to help you get started."
-    )
-
-    # Display Pre-generated Charts (chart1.png to chart7.png)
-    st.write("### Pre-generated Charts")
-    chart_paths = [f"chart{i}.png" for i in range(1, 8)]  # List of chart paths
-
-    # Display charts in a grid layout
-    cols = st.columns(2)  # 2 columns for the grid
+    st.markdown("<h2 class='section-title'>Exploratory Data Analysis</h2>", unsafe_allow_html=True)
+    st.write("Exploring the dataset to understand structure, patterns, and insights.")
+    
+    # Display Pre-generated Charts
+    chart_paths = [f"chart{i}.png" for i in range(1, 8)]
+    cols = st.columns(2)
     for idx, chart_path in enumerate(chart_paths):
-        with cols[idx % 2]:  # Alternate between columns
-            st.image(chart_path, caption=f"Chart {idx + 1}", use_container_width=True)  # Fixed deprecation warning
+        with cols[idx % 2]:
+            st.image(chart_path, caption=f"Chart {idx + 1}", use_container_width=True)
 
 # ================== Prediction Section ==================
-elif page == "Prediction Section (for feature input)":
-    st.markdown("<h2 style='color: #33aaff;'>Prediction</h2>", unsafe_allow_html=True)
-
-    # Load Model Function
+elif page == "Prediction Section":
+    st.markdown("<h2 class='section-title'>Prediction Section</h2>", unsafe_allow_html=True)
+    
     def load_model():
-        model_path = "models/model.pkl"  # Update if needed
-        if os.path.exists(model_path):
-            return joblib.load(model_path)
-        return None
-
-    # Load Model
+        model_path = "models/model.pkl"
+        return joblib.load(model_path) if os.path.exists(model_path) else None
+    
     model = load_model()
     if model is None:
         st.error("⚠️ No trained model found. Please upload a trained model to 'models/model.pkl'.")
-
-    # Sidebar Inputs
-    st.sidebar.markdown("<h2 style='color: #ff5733;'>Input Features</h2>", unsafe_allow_html=True)
-    time_since_last_pickup = int(st.sidebar.number_input("Time Since Last Pickup", min_value=0, value=10))
-    hamper_confirmation_type = int(st.sidebar.number_input("Hamper Confirmation Type", min_value=0, value=1))
-    preferred_contact_methods = int(st.sidebar.number_input("Preferred Contact Methods", min_value=0, value=1))
-    status = int(st.sidebar.number_input("Client Status", min_value=0, value=1))
-    sex_new = int(st.sidebar.number_input("Sex", min_value=0, value=1))
-    new_age_years = int(st.sidebar.number_input("Age in Years", min_value=0, value=35))
-    hamper_demand_lag_30 = int(st.sidebar.number_input("Hamper Demand Lag 30 Days", min_value=0, value=2))
-    latest_contact_method = int(st.sidebar.number_input("Latest Contact Method", min_value=0, value=1))
-    dependents_qty = int(st.sidebar.number_input("Dependents Quantity", min_value=0, value=3))
-    household = int(st.sidebar.number_input("Household Size", min_value=0, value=4))
-    contact_frequency = int(st.sidebar.number_input("Contact Frequency", min_value=0, value=5))
-
-    # Create DataFrame with Integer Inputs
-    input_data = pd.DataFrame([[time_since_last_pickup, hamper_confirmation_type, preferred_contact_methods, 
-                                status, sex_new, new_age_years, hamper_demand_lag_30, latest_contact_method, 
-                                dependents_qty, household, contact_frequency]], 
-                              columns=['time_since_last_pickup', 'hamper_confirmation_type', 'preferred_contact_methods', 
-                                       'status', 'sex_new', 'new_age_years', 'hamper_demand_lag_30', 'latest_contact_method', 
-                                       'dependents_qty', 'household', 'contact_frequency'])
-
+    
+    st.sidebar.markdown("<h2 class='sidebar-title'>Input Features</h2>", unsafe_allow_html=True)
+    
+    inputs = {
+        "Time Since Last Pickup": (0, 10),
+        "Hamper Confirmation Type": (0, 1),
+        "Preferred Contact Methods": (0, 1),
+        "Client Status": (0, 1),
+        "Sex": (0, 1),
+        "Age in Years": (0, 35),
+        "Hamper Demand Lag 30 Days": (0, 2),
+        "Latest Contact Method": (0, 1),
+        "Dependents Quantity": (0, 3),
+        "Household Size": (0, 4),
+        "Contact Frequency": (0, 5),
+    }
+    
+    input_data = pd.DataFrame(
+        [[st.sidebar.number_input(label, min_value=values[0], value=values[1]) for label, values in inputs.items()]],
+        columns=[label.replace(" ", "_").lower() for label in inputs.keys()]
+    )
+    
     if st.sidebar.button("🎯 Predict"):
         if model is None:
-            st.error("❌ Prediction failed: No trained model found. Please upload a valid model to 'models/model.pkl'.")
+            st.error("❌ No trained model found. Please upload a valid model.")
         else:
             prediction = model.predict(input_data)
-            st.markdown("<h3 style='color: #ff33aa;'>Prediction Result</h3>", unsafe_allow_html=True)
-            st.write(f"🎉 **Predicted Outcome:** {int(prediction[0])}")  # Ensures integer output
+            st.markdown("<h3 class='prediction-result'>🎉 Predicted Outcome: {}</h3>".format(int(prediction[0])), unsafe_allow_html=True)
