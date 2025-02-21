@@ -15,7 +15,7 @@ with col2:
 
 # Colorful Header
 st.markdown(
-    "<h1 style='text-align: center; color: #ff5733;'>Client Retention Prediction App</h1>",
+    "<h1 style='text-align: center; color: #ff5733;'>Client Retention Prediction App (MVP)</h1>",
     unsafe_allow_html=True
 )
 
