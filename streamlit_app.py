@@ -24,7 +24,7 @@ st.markdown("<h2 style='color: #33aaff;'>Prediction Section</h2>", unsafe_allow_
 
 # Load Model Function
 def load_model():
-    model_path = "models/RF_churn_model.pkl"  # Correct model path
+    model_path = "RF_churn_model.pkl"  # Correct model path
     if os.path.exists(model_path):
         return joblib.load(model_path)
     return None
