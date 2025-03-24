@@ -90,7 +90,7 @@ elif page == "Prediction":
     # Load Model Function
     def load_model():
         model_path = "RF_churn_model.pkl"  # Change this to the correct path
-"  # Correct model path
+ # Correct model path
         if os.path.exists(model_path):
             return joblib.load(model_path)
         return None
