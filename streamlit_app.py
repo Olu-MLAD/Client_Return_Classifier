@@ -76,7 +76,7 @@ input_data = pd.DataFrame([[
     time_since_first_visit, total_dependents_3_months, weekly_visits, postal_code]],
     columns=['holiday', 'holiday_name', 'pickup_week', 'pickup_count_last_14_days', 
              'pickup_count_last_30_days', 'time_since_first_visit', 'total_dependents_3_months', 
-             'weekly_visits', 'postal_code'])
+             'weekly_visits'])
 
 if st.sidebar.button("🎯 Predict"):
     if model is None:
