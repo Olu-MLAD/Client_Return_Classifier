@@ -89,7 +89,7 @@ elif page == "Prediction":
 
     # Load Model Function
     def load_model():
-        model_path = "models/model.pkl"  # Update if needed
+        model_path = "models/RF_churn_model.pkl"  # Correct model path
         if os.path.exists(model_path):
             return joblib.load(model_path)
         return None
@@ -97,33 +97,28 @@ elif page == "Prediction":
     # Load Model
     model = load_model()
     if model is None:
-        st.error("⚠️ No trained model found. Please upload a trained model to 'models/model.pkl'.")
+        st.error("⚠️ No trained model found. Please upload a trained model to 'models/RF_churn_model.pkl'.")
 
     # Sidebar Inputs
     st.sidebar.markdown("<h2 style='color: #ff5733;'>Input Features</h2>", unsafe_allow_html=True)
-    time_since_last_pickup = int(st.sidebar.number_input("Time Since Last Pickup", min_value=0, value=10))
-    hamper_confirmation_type = int(st.sidebar.number_input("Hamper Confirmation Type", min_value=0, value=1))
-    preferred_contact_methods = int(st.sidebar.number_input("Preferred Contact Methods", min_value=0, value=1))
-    status = int(st.sidebar.number_input("Client Status", min_value=0, value=1))
-    sex_new = int(st.sidebar.number_input("Sex", min_value=0, value=1))
-    new_age_years = int(st.sidebar.number_input("Age in Years", min_value=0, value=35))
-    hamper_demand_lag_30 = int(st.sidebar.number_input("Hamper Demand Lag 30 Days", min_value=0, value=2))
-    latest_contact_method = int(st.sidebar.number_input("Latest Contact Method", min_value=0, value=1))
-    dependents_qty = int(st.sidebar.number_input("Dependents Quantity", min_value=0, value=3))
-    household = int(st.sidebar.number_input("Household Size", min_value=0, value=4))
-    contact_frequency = int(st.sidebar.number_input("Contact Frequency", min_value=0, value=5))
+    holidays = int(st.sidebar.number_input("Holidays", min_value=0, value=0))
+    pickup_week = int(st.sidebar.number_input("Pickup Week", min_value=0, value=1))
+    pickup_count_last_14_days = int(st.sidebar.number_input("Pickup Count Last 14 Days", min_value=0, value=5))
+    pickup_count_last_30_days = int(st.sidebar.number_input("Pickup Count Last 30 Days", min_value=0, value=10))
+    time_since_first_visit = int(st.sidebar.number_input("Time Since First Visit", min_value=0, value=30))
+    total_dependents_3_months = int(st.sidebar.number_input("Total Dependents in Last 3 Months", min_value=0, value=2))
+    weekly_visits = int(st.sidebar.number_input("Weekly Visits", min_value=0, value=3))
+    postal_code = int(st.sidebar.number_input("Postal Code", min_value=0, value=12345))
 
-    # Create DataFrame with Integer Inputs
-    input_data = pd.DataFrame([[time_since_last_pickup, hamper_confirmation_type, preferred_contact_methods, 
-                                status, sex_new, new_age_years, hamper_demand_lag_30, latest_contact_method, 
-                                dependents_qty, household, contact_frequency]], 
-                              columns=['time_since_last_pickup', 'hamper_confirmation_type', 'preferred_contact_methods', 
-                                       'status', 'sex_new', 'new_age_years', 'hamper_demand_lag_30', 'latest_contact_method', 
-                                       'dependents_qty', 'household', 'contact_frequency'])
+    # Create DataFrame with Integer Inputs (Removed 'client_return_within_3_months')
+    input_data = pd.DataFrame([[holidays, pickup_week, pickup_count_last_14_days, pickup_count_last_30_days, 
+                                time_since_first_visit, total_dependents_3_months, weekly_visits, postal_code]], 
+                              columns=['holidays', 'pickup_week', 'pickup_count_last_14_days', 'pickup_count_last_30_days', 
+                                       'time_since_first_visit', 'total_dependents_3_months', 'weekly_visits', 'postal_code'])
 
     if st.sidebar.button("🎯 Predict"):
         if model is None:
-            st.error("❌ Prediction failed: No trained model found. Please upload a valid model to 'models/model.pkl'.")
+            st.error("❌ Prediction failed: No trained model found. Please upload a valid model to 'models/RF_churn_model.pkl'.")
         else:
             prediction = model.predict(input_data)
             st.markdown("<h3 style='color: #ff33aa;'>Prediction Result</h3>", unsafe_allow_html=True)
