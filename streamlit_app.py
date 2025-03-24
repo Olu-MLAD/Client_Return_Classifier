@@ -24,7 +24,7 @@ st.markdown("<h2 style='color: #33aaff;'>Prediction Section</h2>", unsafe_allow_
 
 # Load Model Function
 def load_model():
-    model_path = "RF_churn_model.pkl"  # Correct model path
+    model_path = "models/RF_churn_model.pkl"  # Correct model path
     if os.path.exists(model_path):
         return joblib.load(model_path)
     return None
@@ -34,7 +34,7 @@ model = load_model()
 if model is None:
     st.error("⚠️ No trained model found. Please upload a trained model to 'models/RF_churn_model.pkl'.")
 
-# Sidebar Inputs (Updated for user-friendly format)
+# Sidebar Inputs (Updated for user-friendly format without postal code)
 st.sidebar.markdown("<h2 style='color: #ff5733;'>Input Features</h2>", unsafe_allow_html=True)
 
 # Holiday Input (Yes/No)
@@ -67,13 +67,10 @@ total_dependents_3_months = st.sidebar.number_input("6. Total dependents in the 
 # Weekly Visits Input
 weekly_visits = st.sidebar.number_input("7. How many weekly visits?", min_value=0, value=3)
 
-# Postal Code Input (Canadian Postal Code format)
-# postal_code = st.sidebar.text_input("8. Enter Postal Code (Canada format: A1A 1A1):")
-
-# Create DataFrame with the Updated Inputs
+# Create DataFrame with the Updated Inputs (without postal_code)
 input_data = pd.DataFrame([[
     holiday, holiday_name, pickup_week, pickup_count_last_14_days, pickup_count_last_30_days, 
-    time_since_first_visit, total_dependents_3_months, weekly_visits, postal_code]],
+    time_since_first_visit, total_dependents_3_months, weekly_visits]],
     columns=['holiday', 'holiday_name', 'pickup_week', 'pickup_count_last_14_days', 
              'pickup_count_last_30_days', 'time_since_first_visit', 'total_dependents_3_months', 
              'weekly_visits'])
