@@ -68,7 +68,7 @@ total_dependents_3_months = st.sidebar.number_input("6. Total dependents in the 
 weekly_visits = st.sidebar.number_input("7. How many weekly visits?", min_value=0, value=3)
 
 # Postal Code Input (Canadian Postal Code format)
-postal_code = st.sidebar.text_input("8. Enter Postal Code (Canada format: A1A 1A1):")
+# postal_code = st.sidebar.text_input("8. Enter Postal Code (Canada format: A1A 1A1):")
 
 # Create DataFrame with the Updated Inputs
 input_data = pd.DataFrame([[
