@@ -53,9 +53,12 @@ if page == "About":
     3. Predictions guide outreach efforts
     
     ### Key Benefits
-    - 85% accurate return predictions
-    - Identifies clients needing proactive follow-up
-    - Optimizes food hamper inventory
+    - Enhance Response Accuracy
+    - Improve Operational Efficiency
+    - Streamline Stakeholder Communication
+    - Facilitate Informed Decision Making
+    - Ensure Scalability and Flexibility
+
     """)
 
 # ================== Feature Analysis ==================
