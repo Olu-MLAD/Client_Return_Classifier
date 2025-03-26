@@ -99,6 +99,7 @@ elif page == "Make Prediction":
 
     # List of Canadian holidays
     CANADIAN_HOLIDAYS = [
+        "None",
         "Easter Monday", 
         "Heritage Day", 
         "Labour Day", 
@@ -122,12 +123,10 @@ elif page == "Make Prediction":
         col1, col2 = st.columns(2)
         
         with col1:
-            # Fixed holiday selection - now properly shows when "Yes" is selected
+            # Holiday information
             is_holiday = st.radio("Is this pick up during a holiday?", ["No", "Yes"])
-            if is_holiday == "Yes":
-                holiday_name = st.selectbox("If yes, choose the holiday:", CANADIAN_HOLIDAYS)
-            else:
-                holiday_name = "None"
+            holiday_name = st.selectbox("If yes, choose the holiday:", CANADIAN_HOLIDAYS, 
+                                      disabled=(is_holiday == "No"))
             
             pickup_week = st.number_input("What week of the year is the pick up? (1-52)", 
                                         min_value=1, max_value=52, value=1)
@@ -152,45 +151,30 @@ elif page == "Make Prediction":
                 min_value=0, value=0
             )
             
-            # Canadian Postal Code input with proper format validation
-            postal_code = st.text_input(
-                "Postal Code (First 3 characters - Canadian Format)", 
-                placeholder="T2P",
-                max_length=3,
-                help="Enter first 3 characters of Canadian postal code (e.g. T2P)"
-            ).upper().strip()
-            
-            # Validate Canadian postal code format (first 3 characters)
-            if postal_code and len(postal_code) != 3:
-                st.warning("Please enter first 3 characters of Canadian postal code (e.g. T2P)")
-                postal_code = postal_code[:3]  # Truncate to 3 characters if needed
-
-        # Form submission button - properly implemented inside the form context
+            postal_code = st.text_input("Postal Code (Canadian format)", 
+                                      placeholder="e.g. T2P 1H9").upper()
+        
         submitted = st.form_submit_button("Predict", type="primary")
 
     # Prediction logic
     if submitted:
         try:
-            # Prepare features with proper handling for postal code
-            features_dict = {
+            # Prepare features (updated to match new model requirements)
+            features = pd.DataFrame([{
                 'Holidays': 1 if is_holiday == "Yes" else 0,
-                'holiday_name': holiday_name,
+                'holiday_name': holiday_name if is_holiday == "Yes" else "None",
                 'pickup_week': pickup_week,
                 'pickup_count_last_14_days': 1 if pickup_14_days == "Yes" else 0,
                 'pickup_count_last_30_days': 1 if pickup_30_days == "Yes" else 0,
                 'time_since_first_visit': time_since_first_visit,
                 'total_dependents_3_months': total_dependents,
                 'weekly_visits': weekly_visits,
-                'postal_code': postal_code[:3] if postal_code else "UNK"
-            }
+                'postal_code': postal_code[:3]  # Use first 3 characters of postal code
+            }])
             
-            features = pd.DataFrame([features_dict])
-            
-            # Convert categorical features if needed
+            # Convert categorical features if needed (example)
             if 'holiday_name' in model.feature_names_in_:
                 features = pd.get_dummies(features, columns=['holiday_name'])
-            if 'postal_code' in model.feature_names_in_:
-                features = pd.get_dummies(features, columns=['postal_code'])
             
             # Ensure correct feature order
             features = features.reindex(columns=model.feature_names_in_, fill_value=0)
@@ -225,14 +209,12 @@ elif page == "Make Prediction":
             - Dependents: {}
             - Time since first visit: {} days
             - Holiday period: {}
-            - Postal area: {}
             """.format(
                 "Yes" if pickup_30_days == "Yes" else "No",
                 weekly_visits,
                 total_dependents,
                 time_since_first_visit,
-                holiday_name if is_holiday == "Yes" else "No",
-                postal_code[:3] if postal_code else "Unknown"
+                holiday_name if is_holiday == "Yes" else "No"
             ))
             
         except Exception as e:
