@@ -123,7 +123,7 @@ elif page == "Make Prediction":
 
     # Load Model Function
     def load_model():
-        model_path = "RF_model.pkl"  # Changed to match the filename in error message
+        model_path = "RF_model.pkl"
         if os.path.exists(model_path):
             return joblib.load(model_path)
         return None
@@ -131,7 +131,7 @@ elif page == "Make Prediction":
     # Load Model
     model = load_model()
     if model is None:
-        st.error("⚠️ No trained model found. Please upload a trained model to 'RF_churn_model.pkl'.")
+        st.error("⚠️ No trained model found. Please upload a trained model to 'RF_model.pkl'.")
 
     # Input Features Section
     st.markdown("<h3 style='color: #ff5733;'>Client Information</h3>", unsafe_allow_html=True)
@@ -140,56 +140,72 @@ elif page == "Make Prediction":
     col1, col2 = st.columns(2)
 
     with col1:
-        # Holiday Selection
-        holiday = st.radio("Is this pick-up during a holiday?", ["No", "Yes"])
-
-        # Convert to match expected input format
-        Holidays = 1 if holiday == "Yes" else 0
-
-        # Conditional Holiday Name Selection
-        holiday_name = "None"
-        if holiday == "Yes":
-            holiday_name = st.selectbox(
-                "Select the holiday:",
-                [
-                    "New Year's Day", "Good Friday", "Easter Monday", "Victoria Day",
-                    "Canada Day", "Heritage Day", "Labour Day", "Thanksgiving Day",
-                    "Remembrance Day", "Christmas Day", "Boxing Day", "Alberta Family Day",
-                    "Mother's Day", "Father's Day"
-                ]
-            )
-
-        # Pickup Week
-        pickup_week = st.number_input("Pickup Week (1-52):", min_value=1, max_value=52, value=1)
-
-    with col2:
         # Recent Pickup Information
+        pickup_count_last_7_days = 1 if st.radio("Pickup in last 7 days?", ["No", "Yes"]) == "Yes" else 0
         pickup_count_last_14_days = 1 if st.radio("Pickup in last 14 days?", ["No", "Yes"]) == "Yes" else 0
         pickup_count_last_30_days = 1 if st.radio("Pickup in last 30 days?", ["No", "Yes"]) == "Yes" else 0
+        pickup_count_last_90_days = 1 if st.radio("Pickup in last 90 days?", ["No", "Yes"]) == "Yes" else 0
+
+    with col2:
+        # Visit Information
+        weekly_visits = st.number_input("Weekly Visits:", min_value=0, value=3)
+        monthly_visits = st.number_input("Monthly Visits:", min_value=0, value=12)
         time_since_first_visit = st.number_input("Time Since First Visit (days):", min_value=1, max_value=366, value=30)
+        total_dependents_3_months = st.number_input("Total Dependents in Last 3 Months:", min_value=0, value=2)
 
     # Additional Features
     st.markdown("<h3 style='color: #ff5733;'>Additional Information</h3>", unsafe_allow_html=True)
-    total_dependents_3_months = st.number_input("Total Dependents in Last 3 Months:", min_value=0, value=2)
-    weekly_visits = st.number_input("Weekly Visits:", min_value=0, value=3)
-    postal_code = st.text_input("Postal Code (Canada format: A1A 1A1):")
+    col3, col4 = st.columns(2)
+    with col3:
+        # Holiday Selection
+        Holidays = 1 if st.radio("Is this pick-up during a holiday?", ["No", "Yes"]) == "Yes" else 0
+        pickup_week = st.number_input("Pickup Week (1-52):", min_value=1, max_value=52, value=1)
+    with col4:
+        postal_code = st.text_input("Postal Code (Canada format: A1A 1A1):")
 
-    # Prepare input data
-    input_data = pd.DataFrame([[Holidays, holiday_name, pickup_week, pickup_count_last_14_days, 
-                              pickup_count_last_30_days, time_since_first_visit, 
-                              total_dependents_3_months, weekly_visits, postal_code]],
-        columns=[
-            'Holidays', 'holiday_name', 'pickup_week', 'pickup_count_last_14_days', 
-            'pickup_count_last_30_days', 'time_since_first_visit', 
-            'total_dependents_3_months', 'weekly_visits', 'postal_code'
-        ])
+    # Prepare input data with correct feature names based on model expectations
+    input_data = pd.DataFrame([[
+        monthly_visits,
+        weekly_visits,
+        total_dependents_3_months,
+        pickup_count_last_90_days,
+        pickup_count_last_30_days,
+        pickup_count_last_14_days,
+        pickup_count_last_7_days,
+        Holidays,
+        pickup_week,
+        postal_code,
+        time_since_first_visit
+    ]], columns=[
+        'monthly_visits',
+        'weekly_visits',
+        'total_dependents_3_months',
+        'pickup_count_last_90_days',
+        'pickup_count_last_30_days',
+        'pickup_count_last_14_days',
+        'pickup_count_last_7_days',
+        'Holidays',
+        'pickup_week',
+        'postal_code',
+        'time_since_first_visit'
+    ])
 
     # Check model compatibility
     if model:
-        model_features = model.feature_names_in_
-        missing_features = set(model_features) - set(input_data.columns)
-        if missing_features:
-            st.error(f"⚠️ Missing Features: {missing_features}. Ensure input names match model training.")
+        try:
+            model_features = model.feature_names_in_
+            missing_features = set(model_features) - set(input_data.columns)
+            extra_features = set(input_data.columns) - set(model_features)
+            
+            if missing_features:
+                st.error(f"⚠️ Missing Features: {missing_features}")
+            if extra_features:
+                st.warning(f"⚠️ Extra Features provided: {extra_features}")
+            
+            # Reorder columns to match model's expected order
+            input_data = input_data[model_features]
+        except AttributeError:
+            st.warning("⚠️ Could not verify feature names with this model")
 
     # Prediction Button
     if st.button("Predict Return Probability"):
@@ -212,3 +228,4 @@ elif page == "Make Prediction":
                     
             except Exception as e:
                 st.error(f"❌ Error making prediction: {str(e)}")
+                st.error("Please check that all required input fields are filled correctly.")
