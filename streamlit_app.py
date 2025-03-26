@@ -72,9 +72,6 @@ elif page == "Prediction":
     # Input Features Section
     st.markdown("<h3 style='color: #ff5733;'>Input Features</h3>", unsafe_allow_html=True)
 
-    # Title Feature
-    title = st.text_input("1. Enter Client Title (e.g., Mr., Ms., Dr.)", value="Unknown")
-
     # Holiday Selection
     holiday = st.radio("2. Is this pick-up during a holiday?", ["No", "Yes"])
 
