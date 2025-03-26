@@ -118,130 +118,74 @@ elif page == "Feature Analysis":
         st.warning("Correlation data not available. Displaying sample visualization.")
 
 # ================== Prediction Page ==================
-elif page == "Make Prediction":
-    st.markdown("## Predict Client Return Probability")
-    
-    @st.cache_resource
+elif page == "Prediction":
+    st.markdown("<h2 style='color: #33aaff;'>Prediction Section</h2>", unsafe_allow_html=True)
+
+    # Load Model Function
     def load_model():
-        try:
-            return joblib.load("RF_model.pkl") if os.path.exists("RF_model.pkl") else None
-        except Exception as e:
-            st.error(f"Model loading error: {str(e)}")
-            return None
+        model_path = "RF_model.pkl"
+        if os.path.exists(model_path):
+            return joblib.load(model_path)
+        return None
 
+    # Load Model
     model = load_model()
-    
-    if not model:
-        st.warning("Model not loaded. Please ensure RF_model.pkl exists.")
-        st.stop()
+    if model is None:
+        st.error("⚠️ No trained model found. Please upload a trained model to 'RF_churn_model.pkl'.")
 
-    # Input form with statistically validated features
-    with st.form("prediction_form"):
-        st.markdown("### Client Information (All fields statistically validated)")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # Top significant features
-            weekly_visits = st.number_input(
-                "Weekly visits (p < 0.001)", 
-                min_value=0, max_value=20, value=0,
-                help="Most significant predictor from chi-square tests"
-            )
-            
-            pickup_30_days = st.number_input(
-                "Pickups in last 30 days (p < 0.001)", 
-                min_value=0, max_value=15, value=0
-            )
-            
-            total_dependents = st.number_input(
-                "Dependents (3 months) (p < 0.001)", 
-                min_value=0, value=0
-            )
-            
-        with col2:
-            # Other significant features
-            is_holiday = st.radio(
-                "Holiday period? (p=8.4e-90)", 
-                ["No", "Yes"]
-            )
-            
-            time_since_first_visit = st.number_input(
-                "Days since first visit (p=0.0008)", 
-                min_value=1, max_value=366, value=30
-            )
-            
-            postal_code = st.text_input(
-                "Postal Code (first 3 chars) (p=2.4e-16)", 
-                placeholder="e.g. T2P"
-            ).upper()[:3]
-        
-        submitted = st.form_submit_button("Calculate Probability", type="primary")
+    # Input Features Section
+    st.markdown("<h3 style='color: #ff5733;'>Input Features</h3>", unsafe_allow_html=True)
 
-    if submitted:
-        try:
-            # Prepare features
-            features = pd.DataFrame([{
-                'weekly_visits': weekly_visits,
-                'pickup_count_last_30_days': pickup_30_days,
-                'total_dependents_3_months': total_dependents,
-                'Holidays': 1 if is_holiday == "Yes" else 0,
-                'time_since_first_visit': time_since_first_visit,
-                'postal_code': postal_code,
-                # These will be set to 0 if not in model
-                'pickup_count_last_14_days': 0,
-                'pickup_count_last_7_days': 0,
-                'pickup_count_last_90_days': 0,
-                'pickup_week': 1  # Default value
-            }])
-            
-            # Ensure correct feature order
-            features = features.reindex(columns=model.feature_names_in_, fill_value=0)
-            
-            # Make prediction
-            proba = model.predict_proba(features)[0]
-            return_prob = proba[1]
-            
-            # Display results with scientific context
-            st.markdown("---")
-            st.markdown(f"""
-            ## Prediction Result
-            <div style='background-color:#f8f9fa; padding:20px; border-radius:10px;'>
-            <h3 style='color:#33aaff;'>Return Probability: <b>{return_prob:.0%}</b></h3>
-            <p style='font-size:0.9rem; color:#666;'>
-            Confidence: {min(99, int(100*(1 - chi_df.loc[['weekly_visits','pickup_count_last_30_days']].mean()[0])))}%
-            (based on feature p-values)
-            </p>
-            """, unsafe_allow_html=True)
-            
-            # Visual indicator
-            if return_prob > 0.7:
-                st.success("🔬 High confidence prediction - Strong statistical support")
-            elif return_prob > 0.4:
-                st.warning("📊 Moderate confidence - Multiple significant factors")
-            else:
-                st.error("📉 Lower confidence - Few significant indicators")
-            
-            st.markdown("</div>", unsafe_allow_html=True)
-            
-            # Scientific explanation
-            st.markdown("""
-            ### Scientific Justification
-            This prediction is based on:
-            - **{0:.0f}×** more weekly visits than average (p < 0.001)
-            - **{1:.0f}×** higher 30-day pickup frequency (p < 0.001)
-            - {2} dependents (p < 0.001)
-            - {3} holiday effect (p=8.4e-90)
-            """.format(
-                weekly_visits/max(1, features['weekly_visits'].mean()),
-                pickup_30_days/max(1, features['pickup_count_last_30_days'].mean()),
-                total_dependents,
-                "Yes" if is_holiday == "Yes" else "No"
-            ))
-            
-        except Exception as e:
-            st.error(f"Prediction error: {str(e)}")
+    # Holiday Selection
+    holiday = st.radio("2. Is this pick-up during a holiday?", ["No", "Yes"])
 
-# Footer
-st.markdown("---")
-st.markdown("*IFSSA Analytics - Statistically Validated Predictions*")
+    # Convert to match expected input format
+    Holidays = 1 if holiday == "Yes" else 0
+
+    # Conditional Holiday Name Selection
+    holiday_name = "None"
+    if holiday == "Yes":
+        holiday_name = st.selectbox(
+            "3. Select the holiday:",
+            [
+                "New Year's Day", "Good Friday", "Easter Monday", "Victoria Day",
+                "Canada Day", "Heritage Day", "Labour Day", "Thanksgiving Day",
+                "Remembrance Day", "Christmas Day", "Boxing Day", "Alberta Family Day",
+                "Mother's Day", "Father's Day"
+            ]
+        )
+
+    # Pickup Week and Count Inputs
+    pickup_week = st.number_input("2. Pickup Week (1-52):", min_value=1, max_value=52, value=1)
+    pickup_count_last_14_days = 1 if st.radio("3. Pickup in last 14 days?", ["No", "Yes"]) == "Yes" else 0
+    pickup_count_last_30_days = 1 if st.radio("4. Pickup in last 30 days?", ["No", "Yes"]) == "Yes" else 0
+
+    with st.container():
+        # Additional Features
+        time_since_first_visit = st.number_input("5. Time Since First Visit (days):", min_value=1, max_value=366, value=30)
+        total_dependents_3_months = st.number_input("6. Total Dependents in Last 3 Months:", min_value=0, value=2)
+        weekly_visits = st.number_input("7. Weekly Visits:", min_value=0, value=3)
+        postal_code = st.text_input("8. Postal Code (Canada format: A1A 1A1):")
+
+    # Ensure Model Compatibility
+    input_data = pd.DataFrame([[Holidays, holiday_name, pickup_week, pickup_count_last_14_days, pickup_count_last_30_days,
+        time_since_first_visit, total_dependents_3_months, weekly_visits, postal_code]],
+        columns=[
+        'Holidays', 'holiday_name', 'pickup_week', 'pickup_count_last_14_days', 'pickup_count_last_30_days',
+        'time_since_first_visit', 'total_dependents_3_months', 'weekly_visits', 'postal_code'
+    ])
+
+    if model:
+        model_features = model.feature_names_in_
+        missing_features = set(model_features) - set(input_data.columns)
+        if missing_features:
+            st.error(f"⚠️ Missing Features: {missing_features}. Ensure input names match model training.")
+
+    # Prediction Button
+    if st.button("Predict"):
+        if model is None:
+            st.error("❌ No trained model found. Upload a valid model.")
+        else:
+            prediction = model.predict(input_data)
+            st.markdown("<h3 style='color: #ff33aa;'>Prediction Result</h3>", unsafe_allow_html=True)
+            st.write(f"🎉 **Predicted Outcome:** {int(prediction[0])}")
