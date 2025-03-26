@@ -4,6 +4,8 @@ import joblib
 import os
 import seaborn as sns
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import OneHotEncoder
+import numpy as np
 
 # Set page configuration
 st.set_page_config(layout="wide")
@@ -103,25 +105,72 @@ elif page == "Prediction":
         weekly_visits = st.number_input("7. Weekly Visits:", min_value=0, value=3)
         postal_code = st.text_input("8. Postal Code (Canada format: A1A 1A1):")
 
-    # Ensure Model Compatibility
-    input_data = pd.DataFrame([[Holidays, holiday_name, pickup_week, pickup_count_last_14_days, pickup_count_last_30_days,
-        time_since_first_visit, total_dependents_3_months, weekly_visits, postal_code]],
-        columns=[
-        'Holidays', 'holiday_name', 'pickup_week', 'pickup_count_last_14_days', 'pickup_count_last_30_days',
-        'time_since_first_visit', 'total_dependents_3_months', 'weekly_visits', 'postal_code'
-    ])
+    # Prepare input data with proper feature names
+    input_dict = {
+        'Holidays': Holidays,
+        'holiday_name': holiday_name,
+        'pickup_week': pickup_week,
+        'pickup_count_last_14_days': pickup_count_last_14_days,
+        'pickup_count_last_30_days': pickup_count_last_30_days,
+        'time_since_first_visit': time_since_first_visit,
+        'total_dependents_3_months': total_dependents_3_months,
+        'weekly_visits': weekly_visits,
+        'postal_code': postal_code
+    }
+
+    # Convert to DataFrame
+    input_data = pd.DataFrame([input_dict])
 
     if model:
-        model_features = model.feature_names_in_
-        missing_features = set(model_features) - set(input_data.columns)
+        # Debugging: Show expected and actual features
+        st.write("Model expects these features:", model.feature_names_in_)
+        st.write("Input features:", input_data.columns.tolist())
+
+        # Check for missing features
+        missing_features = set(model.feature_names_in_) - set(input_data.columns)
         if missing_features:
             st.error(f"⚠️ Missing Features: {missing_features}. Ensure input names match model training.")
+        
+        # Check for extra features
+        extra_features = set(input_data.columns) - set(model.feature_names_in_)
+        if extra_features:
+            st.warning(f"Extra features provided: {extra_features}. These will be ignored.")
 
     # Prediction Button
     if st.button("Predict"):
         if model is None:
             st.error("❌ No trained model found. Upload a valid model.")
         else:
-            prediction = model.predict(input_data)
-            st.markdown("<h3 style='color: #ff33aa;'>Prediction Result</h3>", unsafe_allow_html=True)
-            st.write(f"🎉 **Predicted Outcome:** {int(prediction[0])}")
+            try:
+                # Ensure column order matches model expectations
+                input_data = input_data.reindex(columns=model.feature_names_in_, fill_value=0)
+                
+                # One-hot encode categorical features if needed
+                if 'holiday_name' in model.feature_names_in_:
+                    # Get all possible holiday names the model expects
+                    all_holidays = [
+                        "New Year's Day", "Good Friday", "Easter Monday", "Victoria Day",
+                        "Canada Day", "Heritage Day", "Labour Day", "Thanksgiving Day",
+                        "Remembrance Day", "Christmas Day", "Boxing Day", "Alberta Family Day",
+                        "Mother's Day", "Father's Day", "None"
+                    ]
+                    
+                    # Create one-hot encoded columns
+                    for holiday in all_holidays:
+                        col_name = f"holiday_name_{holiday.replace(' ', '_').replace("'", "")}"
+                        if col_name in model.feature_names_in_:
+                            input_data[col_name] = 1 if holiday_name == holiday else 0
+                
+                # Make prediction
+                prediction = model.predict(input_data)
+                proba = model.predict_proba(input_data)
+                
+                st.markdown("<h3 style='color: #ff33aa;'>Prediction Result</h3>", unsafe_allow_html=True)
+                st.write(f"🎉 **Predicted Outcome:** {'Return' if prediction[0] == 1 else 'Not Return'}")
+                st.write(f"📊 **Confidence:** {proba[0][prediction[0]]:.1%}")
+                
+            except Exception as e:
+                st.error(f"Prediction failed: {str(e)}")
+                st.write("Debug info:")
+                st.write("Input data columns:", input_data.columns.tolist())
+                st.write("Model expected features:", model.feature_names_in_.tolist())
