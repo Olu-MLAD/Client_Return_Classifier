@@ -152,27 +152,23 @@ elif page == "Make Prediction":
                 min_value=0, value=0
             )
             
-            # Fixed postal code handling - ensure only first 3 characters are used
-            # ... (keep all previous code until the postal code input section)
-
             # Canadian Postal Code input with proper format validation
             postal_code = st.text_input(
-                "Postal Code (Canadian Format: A1A 1A1)", 
-                placeholder="T2P 1H9",
-                max_length=7,
-                help="Enter in format: A1A 1A1 (space optional)"
+                "Postal Code (First 3 characters - Canadian Format)", 
+                placeholder="T2P",
+                max_length=3,
+                help="Enter first 3 characters of Canadian postal code (e.g. T2P)"
             ).upper().strip()
             
-            # Validate Canadian postal code format
-            if postal_code and len(postal_code.replace(" ", "")) != 6:
-                st.warning("Please enter a valid Canadian postal code (e.g. T2P 1H9)")
-                postal_code = postal_code[:6]  # Truncate to 6 characters if needed
+            # Validate Canadian postal code format (first 3 characters)
+            if postal_code and len(postal_code) != 3:
+                st.warning("Please enter first 3 characters of Canadian postal code (e.g. T2P)")
+                postal_code = postal_code[:3]  # Truncate to 3 characters if needed
 
-# ... (keep all remaining code exactly the same)
-        
+        # Form submission button - properly implemented inside the form context
         submitted = st.form_submit_button("Predict", type="primary")
 
-    # Prediction logic with fixes for the two issues
+    # Prediction logic
     if submitted:
         try:
             # Prepare features with proper handling for postal code
@@ -190,10 +186,11 @@ elif page == "Make Prediction":
             
             features = pd.DataFrame([features_dict])
             
-            # Convert categorical features (including postal code)
-            categorical_cols = [col for col in ['holiday_name', 'postal_code'] if col in features.columns]
-            if categorical_cols:
-                features = pd.get_dummies(features, columns=categorical_cols)
+            # Convert categorical features if needed
+            if 'holiday_name' in model.feature_names_in_:
+                features = pd.get_dummies(features, columns=['holiday_name'])
+            if 'postal_code' in model.feature_names_in_:
+                features = pd.get_dummies(features, columns=['postal_code'])
             
             # Ensure correct feature order
             features = features.reindex(columns=model.feature_names_in_, fill_value=0)
