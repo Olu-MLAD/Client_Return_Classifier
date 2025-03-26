@@ -8,10 +8,10 @@ import matplotlib.pyplot as plt
 # Set page configuration
 st.set_page_config(layout="wide")
 
-# Load and Display Logos Side by Side
-col1, col2, _ = st.columns([0.15, 0.15, 0.7])  
+# Load and Display Logos
+col1, col2, _ = st.columns([0.15, 0.15, 0.7])
 with col1:
-    st.image("logo1.jpeg", width=120)  
+    st.image("logo1.jpeg", width=120)
 with col2:
     st.image("logo2.png", width=120)
 
@@ -34,54 +34,24 @@ if page == "About the Project":
     st.write(
         "The Islamic Family & Social Services Association (IFSSA) is a social service organization based in Edmonton, Alberta, Canada. "
         "It provides a range of community services, such as food hampers, crisis support, and assistance for refugees. "
-        "The organization aims to use artificial intelligence to improve their operations and efficiently tailor their efforts to support "
-        "the community by addressing challenges faced in the areas of inventory management, resource allocation, and delayed/inconsistent "
-        "information shared with stakeholders."
-    )
-    st.write(
-        "We have received a food hamper dataset consisting of two CSV files (Clients Data Dimension and Food Hampers Fact) to analyze and "
-        "build a machine learning model to predict customer churn over a period of time."
+        "The organization aims to use artificial intelligence to improve operations and enhance support efforts."
     )
 
-    st.markdown("<h2 style='color: #33aaff;'>Problem Statement (Client Retention Classification)</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='color: #33aaff;'>Problem Statement</h2>", unsafe_allow_html=True)
     st.write(
-        "This problem involves classifying clients to determine if they are likely to return to use IFSSA services within a 3-month time frame. "
-        "By identifying client behavior patterns, IFSSA can plan outreach efforts or adjust services to better meet the needs of its clients, "
-        "ensuring efficient resource use."
+        "This project focuses on classifying clients to determine if they are likely to return within a 3-month period. "
+        "By identifying client behavior patterns, IFSSA can enhance outreach efforts and optimize resource allocation."
     )
-
-    st.markdown("<h2 style='color: #33aaff;'>Approach</h2>", unsafe_allow_html=True)
-    st.write(
-        "1. Import datasets into pandas dataframe.\n"
-        "2. Visualize datasets to understand structure, patterns, and relationships amongst features.\n"
-        "3. Merge dataframes using a column common to both.\n"
-        "4. Clean data and prepare for feature engineering and modeling (remove duplicates, outliers, and redundant data; handle missing values by filling or removing)."
-    )
-
-    st.markdown("<h2 style='color: #33aaff;'>Project Goals</h2>", unsafe_allow_html=True)
-    st.write("✅ Identify patterns in customer behavior and historical data to support decision-making.")
-    st.write("✅ Develop a machine learning model to predict whether clients will return within a specified time frame.")
-    st.write("✅ Improve operational efficiency by enabling better inventory management and resource planning.")
 
 # ================== Exploratory Data Analysis ==================
 elif page == "Exploratory Data Analysis":
     st.markdown("<h2 style='color: #33aaff;'>Exploratory Data Analysis (EDA)</h2>", unsafe_allow_html=True)
-
-    # Introduction to EDA
-    st.write(
-        "In this section, we explore the dataset to understand its structure, identify patterns, "
-        "and visualize key insights. Below are some pre-generated charts to help you get started."
-    )
-
-    # Display Pre-generated Charts (chart1.png to chart7.png)
     st.write("### Pre-generated Charts")
-    chart_paths = [f"chart{i}.png" for i in range(1, 8)]  # List of chart paths
-
-    # Display charts in a grid layout
-    cols = st.columns(2)  # 2 columns for the grid
+    chart_paths = [f"chart{i}.png" for i in range(1, 8)]
+    cols = st.columns(2)
     for idx, chart_path in enumerate(chart_paths):
-        with cols[idx % 2]:  # Alternate between columns
-            st.image(chart_path, caption=f"Chart {idx + 1}", use_container_width=True)  # Fixed deprecation warning
+        with cols[idx % 2]:  
+            st.image(chart_path, caption=f"Chart {idx + 1}", use_container_width=True)
 
 # ================== Prediction Section ==================
 elif page == "Prediction":
@@ -89,7 +59,7 @@ elif page == "Prediction":
 
     # Load Model Function
     def load_model():
-        model_path = "RF_churn_model.pkl"  # Correct model path
+        model_path = "RF_churn_model.pkl"
         if os.path.exists(model_path):
             return joblib.load(model_path)
         return None
@@ -99,35 +69,51 @@ elif page == "Prediction":
     if model is None:
         st.error("⚠️ No trained model found. Please upload a trained model to 'RF_churn_model.pkl'.")
 
-    # Input Features
+    # Feature Input Form
     st.markdown("<h3 style='color: #ff5733;'>Input Features</h3>", unsafe_allow_html=True)
-    holiday = st.radio("1. Is this pick up during a holiday?", ["Yes", "No"])
-    holiday_name = None
-    if holiday == "Yes":
-        holiday_name = st.selectbox(
-            "Choose the holiday:",
-            ["Easter Monday", "Heritage Day", "Labour Day", "Thanksgiving Day", "Remembrance Day", 
-             "Christmas Day", "Boxing Day", "New Year's Day", "Good Friday", "Mother's Day", 
-             "Victoria Day", "Alberta Family Day", "Father's Day", "Canada Day"]
-        )
-    pickup_week = st.number_input("2. What week of the year is the pick up?", min_value=1, max_value=52, value=1)
-    pickup_count_last_14_days = st.radio("3. Was there a pick up in the last 14 days?", ["Yes", "No"])
-    pickup_count_last_30_days = st.radio("4. Was there a pick up in the last 30 days?", ["Yes", "No"])
-    time_since_first_visit = st.number_input("5. Time interval between the first visit and the next visit (in days):", 
-                                            min_value=1, max_value=366, value=30)
-    total_dependents_3_months = st.number_input("6. Total dependents in the last 3 months:", min_value=0, value=2)
-    weekly_visits = st.number_input("7. How many weekly visits?", min_value=0, value=3)
-    postal_code = st.text_input("8. Enter Postal Code (Canada format: A1A 1A1):")
+    col1, col2 = st.columns(2)
 
-    input_data = pd.DataFrame([[holiday, holiday_name, pickup_week, pickup_count_last_14_days, pickup_count_last_30_days, 
-                                time_since_first_visit, total_dependents_3_months, weekly_visits, postal_code]],
-                              columns=['holiday', 'holiday_name', 'pickup_week', 'pickup_count_last_14_days', 
-                                       'pickup_count_last_30_days', 'time_since_first_visit', 'total_dependents_3_months', 
-                                       'weekly_visits', 'postal_code'])
+    with col1:
+        holiday = st.radio("1. Is this pick-up during a holiday?", ["No", "Yes"])
+        holiday_val = 1 if holiday == "Yes" else 0
+        holiday_name = None
+        if holiday == "Yes":
+            holiday_name = st.selectbox(
+                "Choose the holiday:",
+                ["Easter Monday", "Heritage Day", "Labour Day", "Thanksgiving Day", "Remembrance Day",
+                 "Christmas Day", "Boxing Day", "New Year's Day", "Good Friday", "Mother's Day",
+                 "Victoria Day", "Alberta Family Day", "Father's Day", "Canada Day"]
+            )
 
+        pickup_week = st.number_input("2. Pickup Week (1-52):", min_value=1, max_value=52, value=1)
+        pickup_count_last_14_days = 1 if st.radio("3. Pickup in last 14 days?", ["No", "Yes"]) == "Yes" else 0
+        pickup_count_last_30_days = 1 if st.radio("4. Pickup in last 30 days?", ["No", "Yes"]) == "Yes" else 0
+
+    with col2:
+        time_since_first_visit = st.number_input("5. Time Since First Visit (days):", min_value=1, max_value=366, value=30)
+        total_dependents_3_months = st.number_input("6. Total Dependents in Last 3 Months:", min_value=0, value=2)
+        weekly_visits = st.number_input("7. Weekly Visits:", min_value=0, value=3)
+        postal_code = st.text_input("8. Postal Code (Canada format: A1A 1A1):")
+
+    # Ensure Model Compatibility
+    input_data = pd.DataFrame([[
+        holiday_val, holiday_name, pickup_week, pickup_count_last_14_days, pickup_count_last_30_days,
+        time_since_first_visit, total_dependents_3_months, weekly_visits, postal_code
+    ]], columns=[
+        'holiday', 'holiday_name', 'pickup_week', 'pickup_count_last_14_days', 'pickup_count_last_30_days',
+        'time_since_first_visit', 'total_dependents_3_months', 'weekly_visits', 'postal_code'
+    ])
+
+    if model:
+        model_features = model.feature_names_in_
+        missing_features = set(model_features) - set(input_data.columns)
+        if missing_features:
+            st.error(f"⚠️ Missing Features: {missing_features}. Ensure input names match model training.")
+
+    # Prediction Button
     if st.button("🎯 Predict"):
         if model is None:
-            st.error("❌ Prediction failed: No trained model found. Please upload a valid model to 'models/RF_churn_model.pkl'.")
+            st.error("❌ No trained model found. Upload a valid model.")
         else:
             prediction = model.predict(input_data)
             st.markdown("<h3 style='color: #ff33aa;'>Prediction Result</h3>", unsafe_allow_html=True)
