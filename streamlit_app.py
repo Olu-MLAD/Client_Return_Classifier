@@ -123,7 +123,7 @@ elif page == "Make Prediction":
 
     # Load Model Function
     def load_model():
-        model_path = "RF_churn_model.pkl"  # Changed to match the filename in error message
+        model_path = "RF_model.pkl"  # Changed to match the filename in error message
         if os.path.exists(model_path):
             return joblib.load(model_path)
         return None
