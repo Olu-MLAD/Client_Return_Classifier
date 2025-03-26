@@ -153,9 +153,22 @@ elif page == "Make Prediction":
             )
             
             # Fixed postal code handling - ensure only first 3 characters are used
-            postal_code = st.text_input("Postal Code (First 3 characters)", 
-                                      placeholder="T5H",
-                                      max_length=3).upper()
+            # ... (keep all previous code until the postal code input section)
+
+            # Canadian Postal Code input with proper format validation
+            postal_code = st.text_input(
+                "Postal Code (Canadian Format: A1A 1A1)", 
+                placeholder="T2P 1H9",
+                max_length=7,
+                help="Enter in format: A1A 1A1 (space optional)"
+            ).upper().strip()
+            
+            # Validate Canadian postal code format
+            if postal_code and len(postal_code.replace(" ", "")) != 6:
+                st.warning("Please enter a valid Canadian postal code (e.g. T2P 1H9)")
+                postal_code = postal_code[:6]  # Truncate to 6 characters if needed
+
+# ... (keep all remaining code exactly the same)
         
         submitted = st.form_submit_button("Predict", type="primary")
 
