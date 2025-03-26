@@ -3,7 +3,7 @@ import pandas as pd
 import joblib
 import os
 
-# Set Streamlit page config
+# Set page configuration
 st.set_page_config(layout="wide")
 
 # Load and Display Logos
@@ -13,13 +13,13 @@ with col1:
 with col2:
     st.image("logo2.png", width=120)
 
-# Header
+# Colorful Header
 st.markdown(
     "<h1 style='text-align: center; color: #ff5733;'>Client Return Prediction App (MVP)</h1>",
     unsafe_allow_html=True
 )
 
-# Navigation Bar
+# Sidebar Navigation
 st.sidebar.title("Navigation")
 page = st.sidebar.radio(
     "Go to",
@@ -34,6 +34,7 @@ if page == "About the Project":
         "It provides a range of community services, such as food hampers, crisis support, and assistance for refugees. "
         "The organization aims to use artificial intelligence to improve operations and enhance support efforts."
     )
+
     st.markdown("<h2 style='color: #33aaff;'>Problem Statement</h2>", unsafe_allow_html=True)
     st.write(
         "This project focuses on classifying clients to determine if they are likely to return within a 3-month period. "
@@ -66,74 +67,56 @@ elif page == "Prediction":
             return joblib.load(model_path)
         return None
 
+    # Load Model
     model = load_model()
-    
     if model is None:
-        st.error("⚠️ No trained model found. Please upload a trained model as 'RF_model.pkl'.")
+        st.error("⚠️ No trained model found. Please upload a trained model to 'RF_model.pkl'.")
 
-    # Input Features
+    # Input Features Section
     st.markdown("<h3 style='color: #ff5733;'>Enter Client Data</h3>", unsafe_allow_html=True)
 
-    col1, col2 = st.columns(2)
-    with col1:
-        holiday = st.radio("Is this pick-up during a holiday?", ["No", "Yes"])
-        Holidays = 1 if holiday == "Yes" else 0
+    # Holiday Selection
+    holiday = st.radio("Is this pick-up during a holiday?", ["No", "Yes"])
+    Holidays = 1 if holiday == "Yes" else 0
 
-        if holiday == "Yes":
-            holiday_name = st.selectbox(
-                "Select the holiday:",
-                [
-                    "New Year's Day", "Good Friday", "Easter Monday", "Victoria Day",
-                    "Canada Day", "Heritage Day", "Labour Day", "Thanksgiving Day",
-                    "Remembrance Day", "Christmas Day", "Boxing Day", "Alberta Family Day",
-                    "Mother's Day", "Father's Day"
-                ]
-            )
-        else:
-            holiday_name = "None"
+    # Pickup Week and Count Inputs
+    pickup_week = st.number_input("Pickup Week (1-52):", min_value=1, max_value=52, value=1)
+    pickup_count_last_14_days = 1 if st.radio("Pickup in last 14 days?", ["No", "Yes"]) == "Yes" else 0
+    pickup_count_last_30_days = 1 if st.radio("Pickup in last 30 days?", ["No", "Yes"]) == "Yes" else 0
 
-        pickup_week = st.number_input("Pickup Week (1-52):", min_value=1, max_value=52, value=1)
-
-    with col2:
-        pickup_count_last_14_days = 1 if st.radio("Pickup in last 14 days?", ["No", "Yes"]) == "Yes" else 0
-        pickup_count_last_30_days = 1 if st.radio("Pickup in last 30 days?", ["No", "Yes"]) == "Yes" else 0
-
-        time_since_first_visit = st.number_input("Time Since First Visit (days):", min_value=1, max_value=366, value=30)
-        total_dependents_3_months = st.number_input("Total Dependents in Last 3 Months:", min_value=0, value=2)
-        weekly_visits = st.number_input("Weekly Visits:", min_value=0, value=3)
-
+    # Additional Features
+    time_since_first_visit = st.number_input("Time Since First Visit (days):", min_value=1, max_value=366, value=30)
+    total_dependents_3_months = st.number_input("Total Dependents in Last 3 Months:", min_value=0, value=2)
+    weekly_visits = st.number_input("Weekly Visits:", min_value=0, value=3)
     postal_code = st.text_input("Postal Code (Canada format: A1A 1A1):")
 
-    # Prepare Input Data
-    input_data = pd.DataFrame([[Holidays, holiday_name, pickup_week, pickup_count_last_14_days, pickup_count_last_30_days,
+    # Prepare Input Data (Removing 'holiday_name' to match model features)
+    input_data = pd.DataFrame([[Holidays, pickup_week, pickup_count_last_14_days, pickup_count_last_30_days,
         time_since_first_visit, total_dependents_3_months, weekly_visits, postal_code]],
         columns=[
-        'Holidays', 'holiday_name', 'pickup_week', 'pickup_count_last_14_days', 'pickup_count_last_30_days',
+        'Holidays', 'pickup_week', 'pickup_count_last_14_days', 'pickup_count_last_30_days',
         'time_since_first_visit', 'total_dependents_3_months', 'weekly_visits', 'postal_code'
     ])
 
-    # Feature Name Matching Check
     if model:
-        expected_features = model.feature_names_in_
-        missing_features = set(expected_features) - set(input_data.columns)
-        extra_features = set(input_data.columns) - set(expected_features)
+        model_features = model.feature_names_in_
+        missing_features = set(model_features) - set(input_data.columns)
+        extra_features = set(input_data.columns) - set(model_features)
 
         if missing_features:
             st.error(f"⚠️ Missing Features: {missing_features}. Ensure input names match model training.")
         if extra_features:
             st.warning(f"⚠️ Extra Features in Input: {extra_features}. These might need to be removed.")
 
-        # Align input data with model's expected features
-        input_data = input_data[expected_features] if not missing_features else None
-
     # Prediction Button
     if st.button("Predict"): 
         if model is None:
             st.error("❌ No trained model found. Upload a valid model.")
-        elif input_data is None:
-            st.error("⚠️ Missing features in input. Please check your data.")
         else:
-            prediction = model.predict(input_data)
-            result_text = "✔️ This client is likely to return within 3 months." if prediction[0] == 1 else "❌ This client is unlikely to return within 3 months."
-            st.markdown("<h3 style='color: #ff33aa;'>Prediction Result</h3>", unsafe_allow_html=True)
-            st.write(result_text)
+            try:
+                prediction = model.predict(input_data)
+                result_text = "✔️ This client is likely to return within 3 months." if prediction[0] == 1 else "❌ This client is unlikely to return within 3 months."
+                st.markdown("<h3 style='color: #ff33aa;'>Prediction Result</h3>", unsafe_allow_html=True)
+                st.write(result_text)
+            except Exception as e:
+                st.error(f"🚨 Prediction error: {str(e)}")
