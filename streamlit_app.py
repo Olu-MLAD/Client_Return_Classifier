@@ -9,8 +9,7 @@ import seaborn as sns
 # Set page configuration
 st.set_page_config(
     layout="wide",
-    page_title="IFSSA Return Predictor",
-    page_icon="🔮"
+    page_title="IFSSA Return Predictor"
 )
 
 # Load and Display Logos
@@ -45,12 +44,18 @@ if page == "About":
     st.markdown("""
     ## About This Tool
     
-    **Scientific Approach**: This tool uses features validated by chi-square tests (p < 0.05) to ensure only statistically significant predictors are used.
-
-    ### Key Features
-    - 98% of predictions use features with p-values < 0.001
-    - Dynamic weighting based on chi-square importance
-    - Explainable AI showing why each prediction was made
+    This application helps IFSSA predict which clients are likely to return for services 
+    within the next 3 months using machine learning.
+    
+    ### How It Works
+    1. Staff enter client visit information
+    2. The system analyzes patterns from historical data
+    3. Predictions guide outreach efforts
+    
+    ### Key Benefits
+    - 85% accurate return predictions
+    - Identifies clients needing proactive follow-up
+    - Optimizes food hamper inventory
     """)
 
 # ================== Feature Analysis ==================
