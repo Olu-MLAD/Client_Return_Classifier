@@ -91,10 +91,6 @@ elif page == "Prediction":
             ]
         )
 
-    # Create input DataFrame ensuring correct column names
-    input_data = pd.DataFrame([[title, Holidays, holiday_name]],
-                              columns=['title', 'Holidays', 'holiday_name'])
-
     # Pickup Week and Count Inputs
     pickup_week = st.number_input("2. Pickup Week (1-52):", min_value=1, max_value=52, value=1)
     pickup_count_last_14_days = 1 if st.radio("3. Pickup in last 14 days?", ["No", "Yes"]) == "Yes" else 0
@@ -108,10 +104,10 @@ elif page == "Prediction":
         postal_code = st.text_input("8. Postal Code (Canada format: A1A 1A1):")
 
     # Ensure Model Compatibility
-    input_data = pd.DataFrame([[ Holidays, holiday_name, pickup_week, pickup_count_last_14_days, pickup_count_last_30_days,
-        time_since_first_visit, total_dependents_3_months, weekly_visits, postal_code
-    ]], columns=[
-        'title', 'Holidays', 'holiday_name', 'pickup_week', 'pickup_count_last_14_days', 'pickup_count_last_30_days',
+    input_data = pd.DataFrame([[Holidays, holiday_name, pickup_week, pickup_count_last_14_days, pickup_count_last_30_days,
+        time_since_first_visit, total_dependents_3_months, weekly_visits, postal_code]],
+        columns=[
+        'Holidays', 'holiday_name', 'pickup_week', 'pickup_count_last_14_days', 'pickup_count_last_30_days',
         'time_since_first_visit', 'total_dependents_3_months', 'weekly_visits', 'postal_code'
     ])
 
