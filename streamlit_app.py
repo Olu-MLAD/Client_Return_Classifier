@@ -118,7 +118,7 @@ elif page == "Prediction":
             st.error(f"⚠️ Missing Features: {missing_features}. Ensure input names match model training.")
 
     # Prediction Button
-    if st.button("🎯 Predict"):
+    if st.button("Predict"):
         if model is None:
             st.error("❌ No trained model found. Upload a valid model.")
         else:
