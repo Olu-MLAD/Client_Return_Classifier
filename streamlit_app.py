@@ -67,9 +67,17 @@ elif page == "Data Insights":
     col2.metric("Average Visits", "2.7/month", "Stable")
     col3.metric("Peak Return Days", "Mon-Wed", "Weekends +15%")
     
-    # Sample visualizations
+    # Sample visualizations - replaced with a simple plot
     st.markdown("### Return Frequency")
-    st.image("return_chart.png", use_column_width=True)
+    try:
+        # Create a simple dataframe for visualization
+        data = pd.DataFrame({
+            'Days': ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+            'Visits': [120, 135, 140, 95, 80, 60]
+        })
+        st.bar_chart(data.set_index('Days'))
+    except:
+        st.info("Visualization data not available. Using sample chart.")
 
 # ================== Prediction Page ==================
 elif page == "Make Prediction":
@@ -89,43 +97,84 @@ elif page == "Make Prediction":
         st.warning("Model not loaded. Please ensure RF_model.pkl exists.")
         st.stop()
 
-    # Input form - simplified but comprehensive
+    # List of Canadian holidays
+    CANADIAN_HOLIDAYS = [
+        "None",
+        "Easter Monday", 
+        "Heritage Day", 
+        "Labour Day", 
+        "Thanksgiving Day", 
+        "Remembrance Day", 
+        "Christmas Day", 
+        "Boxing Day", 
+        "New Year's Day", 
+        "Good Friday", 
+        "Mother's Day", 
+        "Victoria Day", 
+        "Alberta Family Day", 
+        "Father's Day", 
+        "Canada Day"
+    ]
+
+    # Input form - updated with new features
     with st.form("prediction_form"):
         st.markdown("### Client Information")
         
         col1, col2 = st.columns(2)
         
         with col1:
-            client_id = st.text_input("Client ID")
-            last_visit = st.date_input("Last Visit Date", 
-                                     value=datetime.now() - pd.Timedelta(days=30))
-            visit_count = st.number_input("Visits in Last 3 Months", 
-                                        min_value=0, value=2)
-            dependents = st.number_input("Number of Dependents", 
-                                       min_value=0, value=2)
-        
+            # Holiday information
+            is_holiday = st.radio("Is this pick up during a holiday?", ["No", "Yes"])
+            holiday_name = st.selectbox("If yes, choose the holiday:", CANADIAN_HOLIDAYS, 
+                                      disabled=(is_holiday == "No"))
+            
+            pickup_week = st.number_input("What week of the year is the pick up? (1-52)", 
+                                        min_value=1, max_value=52, value=1)
+            
+            pickup_14_days = st.radio("Was there a pick up in the last 14 days?", ["No", "Yes"])
+            
         with col2:
-            services = st.multiselect("Services Used", 
-                                    ["Food", "Clothing", "Counseling", "Other"])
-            holiday_visit = st.checkbox("Holiday Period Visit")
-            emergency = st.checkbox("Emergency Service Requested")
-            postal_code = st.text_input("Postal Code (First 3 chars)")
+            pickup_30_days = st.radio("Was there a pick up in the last 30 days?", ["No", "Yes"])
+            
+            time_since_first_visit = st.number_input(
+                "Time interval between first visit and next visit (in days)", 
+                min_value=1, max_value=366, value=30
+            )
+            
+            total_dependents = st.number_input(
+                "Number of dependents in last three months", 
+                min_value=0, value=0
+            )
+            
+            weekly_visits = st.number_input(
+                "How many weekly visits?", 
+                min_value=0, value=0
+            )
+            
+            postal_code = st.text_input("Postal Code (Canadian format)", 
+                                      placeholder="e.g. T2P 1H9").upper()
         
         submitted = st.form_submit_button("Predict", type="primary")
 
     # Prediction logic
     if submitted:
         try:
-            # Prepare features (adjust to match your model)
+            # Prepare features (updated to match new model requirements)
             features = pd.DataFrame([{
-                'days_since_last_visit': (datetime.now().date() - last_visit).days,
-                'visit_count_3mo': visit_count,
-                'num_dependents': dependents,
-                'num_services': len(services),
-                'holiday_visit': int(holiday_visit),
-                'emergency': int(emergency),
-                # Add other features your model expects
+                'Holidays': 1 if is_holiday == "Yes" else 0,
+                'holiday_name': holiday_name if is_holiday == "Yes" else "None",
+                'pickup_week': pickup_week,
+                'pickup_count_last_14_days': 1 if pickup_14_days == "Yes" else 0,
+                'pickup_count_last_30_days': 1 if pickup_30_days == "Yes" else 0,
+                'time_since_first_visit': time_since_first_visit,
+                'total_dependents_3_months': total_dependents,
+                'weekly_visits': weekly_visits,
+                'postal_code': postal_code[:3]  # Use first 3 characters of postal code
             }])
+            
+            # Convert categorical features if needed (example)
+            if 'holiday_name' in model.feature_names_in_:
+                features = pd.get_dummies(features, columns=['holiday_name'])
             
             # Ensure correct feature order
             features = features.reindex(columns=model.feature_names_in_, fill_value=0)
@@ -152,13 +201,21 @@ elif page == "Make Prediction":
             
             st.markdown("</div>", unsafe_allow_html=True)
             
-            # Key factors (mock - adapt to your model)
+            # Key factors (updated with new features)
             st.markdown("""
             ### Influencing Factors
-            - Recent visits: {}/3 months
-            - Days since last visit: {}
+            - Recent visits: {}/30 days
+            - Weekly visits: {}
             - Dependents: {}
-            """.format(visit_count, (datetime.now().date() - last_visit).days, dependents))
+            - Time since first visit: {} days
+            - Holiday period: {}
+            """.format(
+                "Yes" if pickup_30_days == "Yes" else "No",
+                weekly_visits,
+                total_dependents,
+                time_since_first_visit,
+                holiday_name if is_holiday == "Yes" else "No"
+            ))
             
         except Exception as e:
             st.error(f"Prediction error: {str(e)}")
