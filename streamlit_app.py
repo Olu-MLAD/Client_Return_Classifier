@@ -132,8 +132,17 @@ elif page == "Make Prediction":
     model = load_model()
     if model is None:
         st.error("⚠️ No trained model found. Please upload a trained model to 'RF_model.pkl'.")
+        st.stop()  # Stop execution if no model found
 
-    # Input Features Section
+    # Display the features the model expects (for debugging)
+    if model:
+        try:
+            st.sidebar.markdown("### Model Features")
+            st.sidebar.write(model.feature_names_in_)
+        except AttributeError:
+            st.sidebar.warning("Model doesn't have feature names information")
+
+    # Input Features Section - Only include features the model was trained with
     st.markdown("<h3 style='color: #ff5733;'>Client Information</h3>", unsafe_allow_html=True)
 
     # Create columns for better layout
@@ -141,17 +150,17 @@ elif page == "Make Prediction":
 
     with col1:
         # Recent Pickup Information
-        pickup_count_last_7_days = 1 if st.radio("Pickup in last 7 days?", ["No", "Yes"]) == "Yes" else 0
-        pickup_count_last_14_days = 1 if st.radio("Pickup in last 14 days?", ["No", "Yes"]) == "Yes" else 0
-        pickup_count_last_30_days = 1 if st.radio("Pickup in last 30 days?", ["No", "Yes"]) == "Yes" else 0
-        pickup_count_last_90_days = 1 if st.radio("Pickup in last 90 days?", ["No", "Yes"]) == "Yes" else 0
-
-    with col2:
+        pickup_count_last_14_days = st.number_input("Pickups in last 14 days:", min_value=0, value=0)
+        pickup_count_last_30_days = st.number_input("Pickups in last 30 days:", min_value=0, value=0)
+        
         # Visit Information
         weekly_visits = st.number_input("Weekly Visits:", min_value=0, value=3)
-        monthly_visits = st.number_input("Monthly Visits:", min_value=0, value=12)
-        time_since_first_visit = st.number_input("Time Since First Visit (days):", min_value=1, max_value=366, value=30)
+
+    with col2:
+        # Other Features
         total_dependents_3_months = st.number_input("Total Dependents in Last 3 Months:", min_value=0, value=2)
+        time_since_first_visit = st.number_input("Time Since First Visit (days):", min_value=1, max_value=366, value=30)
+        pickup_week = st.number_input("Pickup Week (1-52):", min_value=1, max_value=52, value=1)
 
     # Additional Features
     st.markdown("<h3 style='color: #ff5733;'>Additional Information</h3>", unsafe_allow_html=True)
@@ -159,53 +168,29 @@ elif page == "Make Prediction":
     with col3:
         # Holiday Selection
         Holidays = 1 if st.radio("Is this pick-up during a holiday?", ["No", "Yes"]) == "Yes" else 0
-        pickup_week = st.number_input("Pickup Week (1-52):", min_value=1, max_value=52, value=1)
     with col4:
-        postal_code = st.text_input("Postal Code (Canada format: A1A 1A1):")
+        postal_code = st.text_input("Postal Code (first 3 characters only):", max_chars=3)
 
-    # Prepare input data with correct feature names based on model expectations
+    # Prepare input data with ONLY the features the model expects
     input_data = pd.DataFrame([[
-        monthly_visits,
         weekly_visits,
         total_dependents_3_months,
-        pickup_count_last_90_days,
         pickup_count_last_30_days,
         pickup_count_last_14_days,
-        pickup_count_last_7_days,
         Holidays,
         pickup_week,
-        postal_code,
+        postal_code[:3],  # Use just first 3 characters of postal code
         time_since_first_visit
     ]], columns=[
-        'monthly_visits',
         'weekly_visits',
         'total_dependents_3_months',
-        'pickup_count_last_90_days',
         'pickup_count_last_30_days',
         'pickup_count_last_14_days',
-        'pickup_count_last_7_days',
         'Holidays',
         'pickup_week',
         'postal_code',
         'time_since_first_visit'
     ])
-
-    # Check model compatibility
-    if model:
-        try:
-            model_features = model.feature_names_in_
-            missing_features = set(model_features) - set(input_data.columns)
-            extra_features = set(input_data.columns) - set(model_features)
-            
-            if missing_features:
-                st.error(f"⚠️ Missing Features: {missing_features}")
-            if extra_features:
-                st.warning(f"⚠️ Extra Features provided: {extra_features}")
-            
-            # Reorder columns to match model's expected order
-            input_data = input_data[model_features]
-        except AttributeError:
-            st.warning("⚠️ Could not verify feature names with this model")
 
     # Prediction Button
     if st.button("Predict Return Probability"):
@@ -213,6 +198,7 @@ elif page == "Make Prediction":
             st.error("❌ No trained model found. Upload a valid model.")
         else:
             try:
+                # Ensure we only pass the features the model knows about
                 prediction = model.predict(input_data)
                 probability = model.predict_proba(input_data)[:, 1][0]
                 
@@ -228,4 +214,4 @@ elif page == "Make Prediction":
                     
             except Exception as e:
                 st.error(f"❌ Error making prediction: {str(e)}")
-                st.error("Please check that all required input fields are filled correctly.")
+                st.error("Please check the model's expected features and compare with your inputs.")
