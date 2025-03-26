@@ -1,4 +1,4 @@
-indent properly: import streamlit as st
+import streamlit as st
 import pandas as pd
 import joblib
 import os
@@ -70,40 +70,41 @@ elif page == "Prediction":
         st.error("⚠️ No trained model found. Please upload a trained model to 'RF_churn_model.pkl'.")
 
     # Input Features Section
-st.markdown("<h3 style='color: #ff5733;'>Input Features</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='color: #ff5733;'>Input Features</h3>", unsafe_allow_html=True)
 
-# Title Feature
-title = st.text_input("1. Enter Client Title (e.g., Mr., Ms., Dr.)", value="Unknown")
+    # Title Feature
+    title = st.text_input("1. Enter Client Title (e.g., Mr., Ms., Dr.)", value="Unknown")
 
-# Holiday Selection
-holiday = st.radio("2. Is this pick-up during a holiday?", ["No", "Yes"])
+    # Holiday Selection
+    holiday = st.radio("2. Is this pick-up during a holiday?", ["No", "Yes"])
 
-# Convert to match expected input format
-Holidays = 1 if holiday == "Yes" else 0
+    # Convert to match expected input format
+    Holidays = 1 if holiday == "Yes" else 0
 
-# Conditional Holiday Name Selection
-holiday_name = "None"
-if holiday == "Yes":
-    holiday_name = st.selectbox(
-        "3. Select the holiday:",
-        [
-            "New Year's Day", "Good Friday", "Easter Monday", "Victoria Day",
-            "Canada Day", "Heritage Day", "Labour Day", "Thanksgiving Day",
-            "Remembrance Day", "Christmas Day", "Boxing Day", "Alberta Family Day",
-            "Mother's Day", "Father's Day"
-        ]
-    )
+    # Conditional Holiday Name Selection
+    holiday_name = "None"
+    if holiday == "Yes":
+        holiday_name = st.selectbox(
+            "3. Select the holiday:",
+            [
+                "New Year's Day", "Good Friday", "Easter Monday", "Victoria Day",
+                "Canada Day", "Heritage Day", "Labour Day", "Thanksgiving Day",
+                "Remembrance Day", "Christmas Day", "Boxing Day", "Alberta Family Day",
+                "Mother's Day", "Father's Day"
+            ]
+        )
 
-# Create input DataFrame ensuring correct column names
-input_data = pd.DataFrame([[title, Holidays, holiday_name]],
-                          columns=['title', 'Holidays', 'holiday_name'])
+    # Create input DataFrame ensuring correct column names
+    input_data = pd.DataFrame([[title, Holidays, holiday_name]],
+                              columns=['title', 'Holidays', 'holiday_name'])
 
+    # Pickup Week and Count Inputs
+    pickup_week = st.number_input("2. Pickup Week (1-52):", min_value=1, max_value=52, value=1)
+    pickup_count_last_14_days = 1 if st.radio("3. Pickup in last 14 days?", ["No", "Yes"]) == "Yes" else 0
+    pickup_count_last_30_days = 1 if st.radio("4. Pickup in last 30 days?", ["No", "Yes"]) == "Yes" else 0
 
-        pickup_week = st.number_input("2. Pickup Week (1-52):", min_value=1, max_value=52, value=1)
-        pickup_count_last_14_days = 1 if st.radio("3. Pickup in last 14 days?", ["No", "Yes"]) == "Yes" else 0
-        pickup_count_last_30_days = 1 if st.radio("4. Pickup in last 30 days?", ["No", "Yes"]) == "Yes" else 0
-
-    with col2:
+    with st.container():
+        # Additional Features
         time_since_first_visit = st.number_input("5. Time Since First Visit (days):", min_value=1, max_value=366, value=30)
         total_dependents_3_months = st.number_input("6. Total Dependents in Last 3 Months:", min_value=0, value=2)
         weekly_visits = st.number_input("7. Weekly Visits:", min_value=0, value=3)
@@ -111,10 +112,10 @@ input_data = pd.DataFrame([[title, Holidays, holiday_name]],
 
     # Ensure Model Compatibility
     input_data = pd.DataFrame([[
-        holiday_val, holiday_name, pickup_week, pickup_count_last_14_days, pickup_count_last_30_days,
+        title, Holidays, holiday_name, pickup_week, pickup_count_last_14_days, pickup_count_last_30_days,
         time_since_first_visit, total_dependents_3_months, weekly_visits, postal_code
     ]], columns=[
-        'holiday', 'holiday_name', 'pickup_week', 'pickup_count_last_14_days', 'pickup_count_last_30_days',
+        'title', 'Holidays', 'holiday_name', 'pickup_week', 'pickup_count_last_14_days', 'pickup_count_last_30_days',
         'time_since_first_visit', 'total_dependents_3_months', 'weekly_visits', 'postal_code'
     ])
 
