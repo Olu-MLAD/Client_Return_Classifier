@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import numpy as np  # Added this import
+import numpy as np
 import joblib
 import os
 import matplotlib.pyplot as plt
@@ -117,13 +117,13 @@ elif page == "Feature Analysis":
     except:
         st.warning("Correlation data not available. Displaying sample visualization.")
 
-# ================== Prediction Page ==================
-elif page == "Prediction":
-    st.markdown("<h2 style='color: #33aaff;'>Prediction Section</h2>", unsafe_allow_html=True)
+# ================== Make Prediction Page ==================
+elif page == "Make Prediction":
+    st.markdown("<h2 style='color: #33aaff;'>Client Return Prediction</h2>", unsafe_allow_html=True)
 
     # Load Model Function
     def load_model():
-        model_path = "RF_model.pkl"
+        model_path = "RF_churn_model.pkl"  # Changed to match the filename in error message
         if os.path.exists(model_path):
             return joblib.load(model_path)
         return None
@@ -134,47 +134,57 @@ elif page == "Prediction":
         st.error("⚠️ No trained model found. Please upload a trained model to 'RF_churn_model.pkl'.")
 
     # Input Features Section
-    st.markdown("<h3 style='color: #ff5733;'>Input Features</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='color: #ff5733;'>Client Information</h3>", unsafe_allow_html=True)
 
-    # Holiday Selection
-    holiday = st.radio("2. Is this pick-up during a holiday?", ["No", "Yes"])
+    # Create columns for better layout
+    col1, col2 = st.columns(2)
 
-    # Convert to match expected input format
-    Holidays = 1 if holiday == "Yes" else 0
+    with col1:
+        # Holiday Selection
+        holiday = st.radio("Is this pick-up during a holiday?", ["No", "Yes"])
 
-    # Conditional Holiday Name Selection
-    holiday_name = "None"
-    if holiday == "Yes":
-        holiday_name = st.selectbox(
-            "3. Select the holiday:",
-            [
-                "New Year's Day", "Good Friday", "Easter Monday", "Victoria Day",
-                "Canada Day", "Heritage Day", "Labour Day", "Thanksgiving Day",
-                "Remembrance Day", "Christmas Day", "Boxing Day", "Alberta Family Day",
-                "Mother's Day", "Father's Day"
-            ]
-        )
+        # Convert to match expected input format
+        Holidays = 1 if holiday == "Yes" else 0
 
-    # Pickup Week and Count Inputs
-    pickup_week = st.number_input("2. Pickup Week (1-52):", min_value=1, max_value=52, value=1)
-    pickup_count_last_14_days = 1 if st.radio("3. Pickup in last 14 days?", ["No", "Yes"]) == "Yes" else 0
-    pickup_count_last_30_days = 1 if st.radio("4. Pickup in last 30 days?", ["No", "Yes"]) == "Yes" else 0
+        # Conditional Holiday Name Selection
+        holiday_name = "None"
+        if holiday == "Yes":
+            holiday_name = st.selectbox(
+                "Select the holiday:",
+                [
+                    "New Year's Day", "Good Friday", "Easter Monday", "Victoria Day",
+                    "Canada Day", "Heritage Day", "Labour Day", "Thanksgiving Day",
+                    "Remembrance Day", "Christmas Day", "Boxing Day", "Alberta Family Day",
+                    "Mother's Day", "Father's Day"
+                ]
+            )
 
-    with st.container():
-        # Additional Features
-        time_since_first_visit = st.number_input("5. Time Since First Visit (days):", min_value=1, max_value=366, value=30)
-        total_dependents_3_months = st.number_input("6. Total Dependents in Last 3 Months:", min_value=0, value=2)
-        weekly_visits = st.number_input("7. Weekly Visits:", min_value=0, value=3)
-        postal_code = st.text_input("8. Postal Code (Canada format: A1A 1A1):")
+        # Pickup Week
+        pickup_week = st.number_input("Pickup Week (1-52):", min_value=1, max_value=52, value=1)
 
-    # Ensure Model Compatibility
-    input_data = pd.DataFrame([[Holidays, holiday_name, pickup_week, pickup_count_last_14_days, pickup_count_last_30_days,
-        time_since_first_visit, total_dependents_3_months, weekly_visits, postal_code]],
+    with col2:
+        # Recent Pickup Information
+        pickup_count_last_14_days = 1 if st.radio("Pickup in last 14 days?", ["No", "Yes"]) == "Yes" else 0
+        pickup_count_last_30_days = 1 if st.radio("Pickup in last 30 days?", ["No", "Yes"]) == "Yes" else 0
+        time_since_first_visit = st.number_input("Time Since First Visit (days):", min_value=1, max_value=366, value=30)
+
+    # Additional Features
+    st.markdown("<h3 style='color: #ff5733;'>Additional Information</h3>", unsafe_allow_html=True)
+    total_dependents_3_months = st.number_input("Total Dependents in Last 3 Months:", min_value=0, value=2)
+    weekly_visits = st.number_input("Weekly Visits:", min_value=0, value=3)
+    postal_code = st.text_input("Postal Code (Canada format: A1A 1A1):")
+
+    # Prepare input data
+    input_data = pd.DataFrame([[Holidays, holiday_name, pickup_week, pickup_count_last_14_days, 
+                              pickup_count_last_30_days, time_since_first_visit, 
+                              total_dependents_3_months, weekly_visits, postal_code]],
         columns=[
-        'Holidays', 'holiday_name', 'pickup_week', 'pickup_count_last_14_days', 'pickup_count_last_30_days',
-        'time_since_first_visit', 'total_dependents_3_months', 'weekly_visits', 'postal_code'
-    ])
+            'Holidays', 'holiday_name', 'pickup_week', 'pickup_count_last_14_days', 
+            'pickup_count_last_30_days', 'time_since_first_visit', 
+            'total_dependents_3_months', 'weekly_visits', 'postal_code'
+        ])
 
+    # Check model compatibility
     if model:
         model_features = model.feature_names_in_
         missing_features = set(model_features) - set(input_data.columns)
@@ -182,10 +192,23 @@ elif page == "Prediction":
             st.error(f"⚠️ Missing Features: {missing_features}. Ensure input names match model training.")
 
     # Prediction Button
-    if st.button("Predict"):
+    if st.button("Predict Return Probability"):
         if model is None:
             st.error("❌ No trained model found. Upload a valid model.")
         else:
-            prediction = model.predict(input_data)
-            st.markdown("<h3 style='color: #ff33aa;'>Prediction Result</h3>", unsafe_allow_html=True)
-            st.write(f"🎉 **Predicted Outcome:** {int(prediction[0])}")
+            try:
+                prediction = model.predict(input_data)
+                probability = model.predict_proba(input_data)[:, 1][0]
+                
+                st.markdown("<h3 style='color: #ff33aa;'>Prediction Result</h3>", unsafe_allow_html=True)
+                st.write(f"🎯 **Predicted Outcome:** {'Will Return' if prediction[0] == 1 else 'Will Not Return'}")
+                st.write(f"📊 **Probability of Returning:** {probability:.1%}")
+                
+                # Visual indicator
+                if prediction[0] == 1:
+                    st.success("✅ This client is likely to return within 3 months")
+                else:
+                    st.warning("⚠️ This client is unlikely to return within 3 months")
+                    
+            except Exception as e:
+                st.error(f"❌ Error making prediction: {str(e)}")
