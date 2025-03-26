@@ -69,21 +69,35 @@ elif page == "Prediction":
     if model is None:
         st.error("⚠️ No trained model found. Please upload a trained model to 'RF_churn_model.pkl'.")
 
-    # Feature Input Form
-    st.markdown("<h3 style='color: #ff5733;'>Input Features</h3>", unsafe_allow_html=True)
-    col1, col2 = st.columns(2)
+    # Input Features Section
+st.markdown("<h3 style='color: #ff5733;'>Input Features</h3>", unsafe_allow_html=True)
 
-    with col1:
-        holiday = st.radio("1. Is this pick-up during a holiday?", ["No", "Yes"])
-        holiday_val = 1 if holiday == "Yes" else 0
-        holiday_name = None
-        if holiday == "Yes":
-            holiday_name = st.selectbox(
-                "Choose the holiday:",
-                ["Easter Monday", "Heritage Day", "Labour Day", "Thanksgiving Day", "Remembrance Day",
-                 "Christmas Day", "Boxing Day", "New Year's Day", "Good Friday", "Mother's Day",
-                 "Victoria Day", "Alberta Family Day", "Father's Day", "Canada Day"]
-            )
+# Title Feature
+title = st.text_input("1. Enter Client Title (e.g., Mr., Ms., Dr.)", value="Unknown")
+
+# Holiday Selection
+holiday = st.radio("2. Is this pick-up during a holiday?", ["No", "Yes"])
+
+# Convert to match expected input format
+Holidays = 1 if holiday == "Yes" else 0
+
+# Conditional Holiday Name Selection
+holiday_name = "None"
+if holiday == "Yes":
+    holiday_name = st.selectbox(
+        "3. Select the holiday:",
+        [
+            "New Year's Day", "Good Friday", "Easter Monday", "Victoria Day",
+            "Canada Day", "Heritage Day", "Labour Day", "Thanksgiving Day",
+            "Remembrance Day", "Christmas Day", "Boxing Day", "Alberta Family Day",
+            "Mother's Day", "Father's Day"
+        ]
+    )
+
+# Create input DataFrame ensuring correct column names
+input_data = pd.DataFrame([[title, Holidays, holiday_name]],
+                          columns=['title', 'Holidays', 'holiday_name'])
+
 
         pickup_week = st.number_input("2. Pickup Week (1-52):", min_value=1, max_value=52, value=1)
         pickup_count_last_14_days = 1 if st.radio("3. Pickup in last 14 days?", ["No", "Yes"]) == "Yes" else 0
