@@ -80,13 +80,8 @@ elif page == "Feature Analysis":
         'time_since_first_visit': 7.845354e-04
     }
     
-    # Convert to dataframe
-    chi_df = pd.DataFrame.from_dict(chi2_results, orient='index', columns=['p-value'])
-    chi_df['-log10(p)'] = -np.log10(chi_df['p-value'].replace(0, 1e-300))  # Handle zero p-values
-    chi_df = chi_df.sort_values('-log10(p)', ascending=False)
-    
     # Visualization
-    st.markdown("### Feature Significance (-log10 p-values)")
+    st.markdown("### Feature Significance based chi test")
     plt.figure(figsize=(10, 6))
     ax = sns.barplot(x='-log10(p)', y=chi_df.index, data=chi_df, palette="viridis")
     plt.axvline(-np.log10(0.05), color='red', linestyle='--', label='p=0.05 threshold')
