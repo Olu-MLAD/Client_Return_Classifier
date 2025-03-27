@@ -6,8 +6,8 @@ import os
 import matplotlib.pyplot as plt
 import seaborn as sns
 import re  # Added this import for postal code validation
-
-
+import gspread
+from gspread_dataframe import get_as_dataframe
 
 # Set page configuration
 st.set_page_config(
@@ -227,16 +227,7 @@ elif page == "Make Prediction":
             except Exception as e:
                 st.error(f"❌ Error making prediction: {str(e)}")
 
-!pip install streamlit pandas gspread gspread-dataframe
-
-import streamlit as st
-import pandas as pd
-import gspread
-from gspread_dataframe import get_as_dataframe
-
-# Authenticate and connect to Google Sheets (if you're using OAuth)
-# gc = gspread.service_account(filename='path_to_your_credentials.json')
-
+# Google Sheets Integration (if applicable)
 gc = gspread.authorize(credentials=None)  # This would use an unauthenticated public access to the sheet
 
 # Alternatively, for a public sheet, you can use the URL or sheet key directly:
@@ -250,7 +241,3 @@ df = get_as_dataframe(worksheet)
 
 # Display data in Streamlit
 st.write("Google Sheet Data:", df)
-
-
-streamlit run app.py
-
