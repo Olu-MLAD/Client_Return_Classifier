@@ -132,17 +132,9 @@ elif page == "Make Prediction":
     model = load_model()
     if model is None:
         st.error("⚠️ No trained model found. Please upload a trained model to 'RF_model.pkl'.")
-        st.stop()  # Stop execution if no model found
+        st.stop()
 
-    # Display the features the model expects (for debugging)
-    if model:
-        try:
-            st.sidebar.markdown("### Model Features")
-            st.sidebar.write(model.feature_names_in_)
-        except AttributeError:
-            st.sidebar.warning("Model doesn't have feature names information")
-
-    # Input Features Section - Only include features the model was trained with
+    # Input Features Section
     st.markdown("<h3 style='color: #ff5733;'>Client Information</h3>", unsafe_allow_html=True)
 
     # Create columns for better layout
@@ -152,12 +144,9 @@ elif page == "Make Prediction":
         # Recent Pickup Information
         pickup_count_last_14_days = st.number_input("Pickups in last 14 days:", min_value=0, value=0)
         pickup_count_last_30_days = st.number_input("Pickups in last 30 days:", min_value=0, value=0)
-        
-        # Visit Information
         weekly_visits = st.number_input("Weekly Visits:", min_value=0, value=3)
 
     with col2:
-        # Other Features
         total_dependents_3_months = st.number_input("Total Dependents in Last 3 Months:", min_value=0, value=2)
         time_since_first_visit = st.number_input("Time Since First Visit (days):", min_value=1, max_value=366, value=30)
         pickup_week = st.number_input("Pickup Week (1-52):", min_value=1, max_value=52, value=1)
@@ -166,12 +155,28 @@ elif page == "Make Prediction":
     st.markdown("<h3 style='color: #ff5733;'>Additional Information</h3>", unsafe_allow_html=True)
     col3, col4 = st.columns(2)
     with col3:
-        # Holiday Selection
         Holidays = 1 if st.radio("Is this pick-up during a holiday?", ["No", "Yes"]) == "Yes" else 0
+    
     with col4:
-        postal_code = st.text_input("Postal Code (first 3 characters only):", max_chars=3)
+        # Canadian Postal Code Input with validation
+        def validate_postal_code(postal_code):
+            # Remove spaces and convert to uppercase
+            clean_code = postal_code.replace(" ", "").upper()
+            # Check pattern (A1A1A1)
+            if len(clean_code) != 6:
+                return False
+            pattern = re.compile(r'^[A-Z]\d[A-Z]\d[A-Z]\d$')
+            return bool(pattern.match(clean_code))
+        
+        postal_code = st.text_input("Postal Code (A1A 1A1 format):", 
+                                  max_chars=7,
+                                  help="Enter Canadian postal code (e.g., M5V 3L9)")
+        
+        # Validate format
+        if postal_code and not validate_postal_code(postal_code):
+            st.warning("Please enter a valid Canadian postal code (e.g., A1A 1A1)")
 
-    # Prepare input data with ONLY the features the model expects
+    # Prepare input data
     input_data = pd.DataFrame([[
         weekly_visits,
         total_dependents_3_months,
@@ -179,7 +184,7 @@ elif page == "Make Prediction":
         pickup_count_last_14_days,
         Holidays,
         pickup_week,
-        postal_code[:3],  # Use just first 3 characters of postal code
+        postal_code.replace(" ", "").upper()[:6] if postal_code else "",
         time_since_first_visit
     ]], columns=[
         'weekly_visits',
@@ -194,11 +199,12 @@ elif page == "Make Prediction":
 
     # Prediction Button
     if st.button("Predict Return Probability"):
-        if model is None:
-            st.error("❌ No trained model found. Upload a valid model.")
+        if not postal_code or not validate_postal_code(postal_code):
+            st.error("Please enter a valid Canadian postal code")
+        elif model is None:
+            st.error("❌ No trained model found.")
         else:
             try:
-                # Ensure we only pass the features the model knows about
                 prediction = model.predict(input_data)
                 probability = model.predict_proba(input_data)[:, 1][0]
                 
@@ -206,7 +212,6 @@ elif page == "Make Prediction":
                 st.write(f"🎯 **Predicted Outcome:** {'Will Return' if prediction[0] == 1 else 'Will Not Return'}")
                 st.write(f"📊 **Probability of Returning:** {probability:.1%}")
                 
-                # Visual indicator
                 if prediction[0] == 1:
                     st.success("✅ This client is likely to return within 3 months")
                 else:
@@ -214,4 +219,3 @@ elif page == "Make Prediction":
                     
             except Exception as e:
                 st.error(f"❌ Error making prediction: {str(e)}")
-                st.error("Please check the model's expected features and compare with your inputs.")
