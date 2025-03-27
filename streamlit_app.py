@@ -5,6 +5,7 @@ import joblib
 import os
 import matplotlib.pyplot as plt
 import seaborn as sns
+import re  # Added this import for postal code validation
 
 # Set page configuration
 st.set_page_config(
@@ -86,7 +87,7 @@ elif page == "Feature Analysis":
     chi_df = chi_df.sort_values('-log10(p)', ascending=False)
     
     # Visualization
-    st.markdown("### Feature Significance based chi test")
+    st.markdown("### Feature Significance (-log10 p-values)")
     plt.figure(figsize=(10, 6))
     ax = sns.barplot(x='-log10(p)', y=chi_df.index, data=chi_df, palette="viridis")
     plt.axvline(-np.log10(0.05), color='red', linestyle='--', label='p=0.05 threshold')
@@ -160,6 +161,8 @@ elif page == "Make Prediction":
     with col4:
         # Canadian Postal Code Input with validation
         def validate_postal_code(postal_code):
+            if not postal_code:
+                return False
             # Remove spaces and convert to uppercase
             clean_code = postal_code.replace(" ", "").upper()
             # Check pattern (A1A1A1)
@@ -199,8 +202,10 @@ elif page == "Make Prediction":
 
     # Prediction Button
     if st.button("Predict Return Probability"):
-        if not postal_code or not validate_postal_code(postal_code):
-            st.error("Please enter a valid Canadian postal code")
+        if not postal_code:
+            st.error("Please enter a postal code")
+        elif not validate_postal_code(postal_code):
+            st.error("Please enter a valid Canadian postal code (format: A1A 1A1)")
         elif model is None:
             st.error("❌ No trained model found.")
         else:
