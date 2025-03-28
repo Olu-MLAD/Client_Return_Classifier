@@ -17,35 +17,111 @@ st.set_page_config(
     page_title="IFSSA Return Predictor"
 )
 
-# Load and Display Logos
-col1, col2, _ = st.columns([0.15, 0.15, 0.7])
-with col1:
-    st.image("logo1.jpeg", width=120)
-with col2:
-    st.image("logo2.png", width=120)
+# --- Helper Functions ---
+def validate_postal_code(postal_code):
+    """Validate Canadian postal code format"""
+    if not postal_code:
+        return False
+    clean_code = postal_code.replace(" ", "").upper()
+    if len(clean_code) != 6:
+        return False
+    return bool(re.match(r'^[A-Z]\d[A-Z]\d[A-Z]\d$', clean_code))
 
-# Header
-st.markdown(
-    """
-    <h1 style='text-align: center; color: #ff5733; padding: 20px;'>
-    IFSSA Client Return Prediction
-    </h1>
-    <p style='text-align: center; font-size: 1.1rem;'>
-    Predict which clients will return within 3 months using statistically validated features
-    </p>
-    """,
-    unsafe_allow_html=True
-)
+@st.cache_resource
+def load_model():
+    """Load and validate the machine learning model"""
+    model_path = "RF_model.pkl"
+    try:
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(f"Model file not found at: {os.path.abspath(model_path)}")
+        
+        model = joblib.load(model_path)
+        
+        if not is_classifier(model):
+            raise ValueError("Loaded model is not a classifier")
+            
+        if not (hasattr(model, 'predict') and hasattr(model, 'predict_proba')):
+            raise AttributeError("Model missing required methods")
+            
+        return model
+        
+    except Exception as e:
+        st.error(f"❌ Model loading failed: {str(e)}")
+        st.error("""
+        Please ensure:
+        1. 'RF_model.pkl' exists in the same directory
+        2. The file is a valid scikit-learn model
+        3. You have matching Python/scikit-learn versions
+        """)
+        return None
 
-# ================== Navigation ==================
-page = st.sidebar.radio(
-    "Navigation",
-    ["About", "Feature Analysis", "Make Prediction"],
-    index=2
-)
+def connect_to_google_sheets():
+    """Handle Google Sheets connection with status tracking"""
+    status_container = st.container()
+    data_container = st.container()
+    
+    if not os.path.exists("service_account.json"):
+        with status_container:
+            st.info("ℹ️ Google Sheets integration not configured - using local mode")
+            st.caption("To enable Google Sheets, add 'service_account.json' to your directory")
+        return None
+    
+    try:
+        with status_container:
+            with st.spinner("Connecting to Google Sheets..."):
+                gc = gspread.service_account(filename="service_account.json")
+                st.success("🔐 Authentication successful")
+                
+                sheet_url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQwjh9k0hk536tHDO3cgmCb6xvu6GMAcLUUW1aVqKI-bBw-3mb5mz1PTRZ9XSfeLnlmrYs1eTJH3bvJ/pubhtml"
+                sh = gc.open_by_url(sheet_url)
+                worksheet = sh.sheet1
+                st.success("📊 Connected to Google Sheet")
+                
+                with st.spinner("Loading client data..."):
+                    df = get_as_dataframe(worksheet)
+                    if df.empty:
+                        st.warning("⚠️ Loaded empty dataset")
+                    else:
+                        st.success(f"✅ Loaded {len(df)} records")
+                        
+                        with data_container.expander("View Live Client Data", expanded=False):
+                            st.dataframe(df.head(10))
+                            st.caption(f"Last refreshed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                        return df
+                        
+    except gspread.exceptions.APIError as e:
+        with status_container:
+            st.error(f"🔴 API Error: {str(e)}")
+    except gspread.exceptions.SpreadsheetNotFound:
+        with status_container:
+            st.error("🔍 Spreadsheet not found - please check URL")
+    except Exception as e:
+        with status_container:
+            st.error(f"⚠️ Unexpected error: {str(e)}")
+    
+    return None
 
-# ================== About Page ==================
-if page == "About":
+# --- UI Components ---
+def display_header():
+    col1, col2, _ = st.columns([0.15, 0.15, 0.7])
+    with col1:
+        st.image("logo1.jpeg", width=120)
+    with col2:
+        st.image("logo2.png", width=120)
+    
+    st.markdown(
+        """
+        <h1 style='text-align: center; color: #ff5733; padding: 20px;'>
+        IFSSA Client Return Prediction
+        </h1>
+        <p style='text-align: center; font-size: 1.1rem;'>
+        Predict which clients will return within 3 months using statistically validated features
+        </p>
+        """,
+        unsafe_allow_html=True
+    )
+
+def about_page():
     st.markdown("""
     ## About This Tool
     
@@ -65,11 +141,9 @@ if page == "About":
     - Ensure Scalability and Flexibility
     """)
 
-# ================== Feature Analysis ==================
-elif page == "Feature Analysis":
+def feature_analysis_page():
     st.markdown("## Statistically Validated Predictors")
     
-    # Chi-square test results (from your data)
     chi2_results = {
         'monthly_visits': 0.000000e+00,
         'weekly_visits': 0.000000e+00,
@@ -84,12 +158,10 @@ elif page == "Feature Analysis":
         'time_since_first_visit': 7.845354e-04
     }
     
-    # Convert to dataframe
     chi_df = pd.DataFrame.from_dict(chi2_results, orient='index', columns=['p-value'])
-    chi_df['-log10(p)'] = -np.log10(chi_df['p-value'].replace(0, 1e-300))  # Handle zero p-values
+    chi_df['-log10(p)'] = -np.log10(chi_df['p-value'].replace(0, 1e-300))
     chi_df = chi_df.sort_values('-log10(p)', ascending=False)
     
-    # Visualization
     st.markdown("### Feature Significance (-log10 p-values)")
     fig, ax = plt.subplots(figsize=(10, 6))
     sns.barplot(x='-log10(p)', y=chi_df.index, data=chi_df, palette="viridis", ax=ax)
@@ -99,7 +171,6 @@ elif page == "Feature Analysis":
     ax.set_title("Chi-Square Test Results for Feature Selection")
     st.pyplot(fig)
     
-    # Interpretation
     st.markdown("""
     **Key Insights**:
     - All shown features are statistically significant (p < 0.05)
@@ -108,137 +179,75 @@ elif page == "Feature Analysis":
     - Postal code explains location-based patterns (p=2.4e-16)
     """)
 
-# ================== Make Prediction Page ==================
-elif page == "Make Prediction":
+def prediction_page():
     st.markdown("<h2 style='color: #33aaff;'>Client Return Prediction</h2>", unsafe_allow_html=True)
 
-    @st.cache_resource
-    def load_model():
-        """Load and validate the machine learning model"""
-        model_path = "RF_model.pkl"
-        try:
-            if not os.path.exists(model_path):
-                raise FileNotFoundError(f"Model file not found at: {os.path.abspath(model_path)}")
-            
-            model = joblib.load(model_path)
-            
-            # Validate it's a proper sklearn classifier
-            if not is_classifier(model):
-                raise ValueError("Loaded model is not a classifier")
-                
-            if not (hasattr(model, 'predict') and hasattr(model, 'predict_proba')):
-                raise AttributeError("Model missing required methods (predict/predict_proba)")
-                
-            return model
-            
-        except Exception as e:
-            st.error(f"❌ Model loading failed: {str(e)}")
-            st.error("""
-            Please ensure:
-            1. 'RF_model.pkl' exists in the same directory
-            2. The file is a valid scikit-learn model
-            3. You have matching Python/scikit-learn versions
-            """)
-            return None
-
-    # Load model with progress indicator
+    # Load model
     with st.spinner("Loading prediction model..."):
         model = load_model()
-        
     if model is None:
         st.stop()
 
-    # Input Features Section
-    st.markdown("<h3 style='color: #ff5733;'>Client Information</h3>", unsafe_allow_html=True)
-
-    # Create columns for better layout
-    col1, col2 = st.columns(2)
-
-    with col1:
-        # Recent Pickup Information
-        pickup_count_last_14_days = st.number_input("Pickups in last 14 days:", min_value=0, value=0)
-        pickup_count_last_30_days = st.number_input("Pickups in last 30 days:", min_value=0, value=0)
-        weekly_visits = st.number_input("Weekly Visits:", min_value=0, value=3)
-
-    with col2:
-        total_dependents_3_months = st.number_input("Total Dependents in Last 3 Months:", min_value=0, value=2)
-        time_since_first_visit = st.number_input("Time Since First Visit (days):", min_value=1, max_value=366, value=30)
-        pickup_week = st.number_input("Pickup Week (1-52):", min_value=1, max_value=52, value=1)
-
-    # Additional Features
-    st.markdown("<h3 style='color: #ff5733;'>Additional Information</h3>", unsafe_allow_html=True)
-    col3, col4 = st.columns(2)
-    with col3:
-        Holidays = st.selectbox("Is this pick-up during a holiday?", ["No", "Yes"], index=0)
-        Holidays = 1 if Holidays == "Yes" else 0
-    
-    with col4:
-        def validate_postal_code(postal_code):
-            """Validate Canadian postal code format"""
-            if not postal_code:
-                return False
-            clean_code = postal_code.replace(" ", "").upper()
-            if len(clean_code) != 6:
-                return False
-            return bool(re.match(r'^[A-Z]\d[A-Z]\d[A-Z]\d$', clean_code))
+    # Input form
+    with st.form("prediction_form"):
+        col1, col2 = st.columns(2)
         
-        postal_code = st.text_input("Postal Code (A1A 1A1 format):", 
-                                 max_chars=7,
-                                 help="Enter Canadian postal code (e.g., M5V 3L9)")
+        with col1:
+            pickup_count_last_14_days = st.number_input("Pickups in last 14 days:", min_value=0, value=0)
+            pickup_count_last_30_days = st.number_input("Pickups in last 30 days:", min_value=0, value=0)
+            weekly_visits = st.number_input("Weekly Visits:", min_value=0, value=3)
+
+        with col2:
+            total_dependents_3_months = st.number_input("Total Dependents in Last 3 Months:", min_value=0, value=2)
+            time_since_first_visit = st.number_input("Time Since First Visit (days):", min_value=1, max_value=366, value=30)
+            pickup_week = st.number_input("Pickup Week (1-52):", min_value=1, max_value=52, value=1)
+
+        col3, col4 = st.columns(2)
+        with col3:
+            Holidays = st.selectbox("Is this pick-up during a holiday?", ["No", "Yes"], index=0)
+            Holidays = 1 if Holidays == "Yes" else 0
         
-        if postal_code and not validate_postal_code(postal_code):
-            st.warning("Please enter a valid Canadian postal code (e.g., A1A 1A1)")
+        with col4:
+            postal_code = st.text_input("Postal Code (A1A 1A1 format):", 
+                                     max_chars=7,
+                                     help="Enter Canadian postal code (e.g., M5V 3L9)")
+            
+            if postal_code and not validate_postal_code(postal_code):
+                st.warning("Please enter a valid Canadian postal code (e.g., A1A 1A1)")
 
-    # Prepare input data
-    try:
-        input_data = pd.DataFrame([[ 
-            weekly_visits,
-            total_dependents_3_months,
-            pickup_count_last_30_days,
-            pickup_count_last_14_days,
-            Holidays,
-            pickup_week,
-            postal_code.replace(" ", "").upper()[:6] if postal_code else "",
-            time_since_first_visit
-        ]], columns=[
-            'weekly_visits',
-            'total_dependents_3_months',
-            'pickup_count_last_30_days',
-            'pickup_count_last_14_days',
-            'Holidays',
-            'pickup_week',
-            'postal_code',
-            'time_since_first_visit'
-        ])
+        submitted = st.form_submit_button("Predict Return Probability", type="primary")
 
-        # Ensure correct feature order
-        model_feature_order = [
-            'weekly_visits',
-            'total_dependents_3_months',
-            'pickup_count_last_30_days',
-            'pickup_count_last_14_days',
-            'Holidays',
-            'pickup_week',
-            'postal_code',
-            'time_since_first_visit'
-        ]
-        input_data = input_data[model_feature_order]
-
-    except Exception as e:
-        st.error(f"Error preparing input data: {str(e)}")
-        st.stop()
-
-    # Prediction Button
-    if st.button("Predict Return Probability", type="primary"):
+    # Handle form submission
+    if submitted:
         if not postal_code:
             st.error("Please enter a postal code")
         elif not validate_postal_code(postal_code):
             st.error("Please enter a valid Canadian postal code (format: A1A 1A1)")
         else:
             try:
+                input_data = pd.DataFrame([[ 
+                    weekly_visits,
+                    total_dependents_3_months,
+                    pickup_count_last_30_days,
+                    pickup_count_last_14_days,
+                    Holidays,
+                    pickup_week,
+                    postal_code.replace(" ", "").upper()[:6],
+                    time_since_first_visit
+                ]], columns=[
+                    'weekly_visits',
+                    'total_dependents_3_months',
+                    'pickup_count_last_30_days',
+                    'pickup_count_last_14_days',
+                    'Holidays',
+                    'pickup_week',
+                    'postal_code',
+                    'time_since_first_visit'
+                ])
+
                 with st.spinner("Making prediction..."):
                     prediction = model.predict(input_data)
-                    probability = model.predict_proba(input_data)[0][1]  # Get probability for class 1
+                    probability = model.predict_proba(input_data)[0][1]
                 
                 # Display results
                 st.markdown("---")
@@ -259,68 +268,30 @@ elif page == "Make Prediction":
                 else:
                     st.warning("⚠️ This client is unlikely to return within 3 months")
                     
-                # Save prediction to history
-                prediction_history = {
-                    'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    'postal_code': postal_code,
-                    'prediction': "Will Return" if prediction[0] == 1 else "Will Not Return",
-                    'probability': f"{probability:.1%}",
-                    'weekly_visits': weekly_visits,
-                    'pickup_count_last_14_days': pickup_count_last_14_days
-                }
-                
             except Exception as e:
                 st.error(f"Prediction failed: {str(e)}")
-                st.error("Please check your input values and try again")
 
-# ================== Enhanced GSpread Integration ==================
-if page == "Make Prediction":
+    # Google Sheets integration
     st.markdown("---")
     st.subheader("Data Integration Status")
-    
-    connection_status = st.empty()
-    data_display = st.empty()
-    
-    try:
-        # Check for credentials
-        if not os.path.exists("service_account.json"):
-            connection_status.warning("ℹ️ Google Sheets integration not configured - using local mode")
-        else:
-            with st.spinner("Connecting to Google Sheets..."):
-                try:
-                    # Step 1: Authenticate
-                    gc = gspread.service_account(filename="service_account.json")
-                    connection_status.info("🔐 Authentication successful")
-                    
-                    # Step 2: Access spreadsheet
-                    sheet_url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQwjh9k0hk536tHDO3cgmCb6xvu6GMAcLUUW1aVqKI-bBw-3mb5mz1PTRZ9XSfeLnlmrYs1eTJH3bvJ/pubhtml"
-                    sh = gc.open_by_url(sheet_url)
-                    worksheet = sh.sheet1
-                    connection_status.success("📊 Connected to Google Sheet")
-                    
-                    # Step 3: Load data
-                    with st.spinner("Loading client data..."):
-                        df = get_as_dataframe(worksheet)
-                        if df.empty:
-                            connection_status.warning("⚠️ Loaded empty dataset")
-                        else:
-                            connection_status.success(f"✅ Successfully loaded {len(df)} client records")
-                            
-                            # Display data
-                            with data_display.expander("View Live Client Data", expanded=False):
-                                st.dataframe(df.head(10))
-                                st.caption(f"Last refreshed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-                                
-                except gspread.exceptions.APIError as e:
-                    connection_status.error(f"🔴 API Error: {str(e)}")
-                except gspread.exceptions.SpreadsheetNotFound:
-                    connection_status.error("🔍 Spreadsheet not found - please check URL")
-                except Exception as e:
-                    connection_status.error(f"⚠️ Unexpected error: {str(e)}")
-                    
-    except Exception as e:
-        connection_status.error(f"❌ Connection failed: {str(e)}")
-        st.warning("Proceeding with local data only")
+    connect_to_google_sheets()
+
+# --- Main App Logic ---
+display_header()
+
+# Navigation
+page = st.sidebar.radio(
+    "Navigation",
+    ["About", "Feature Analysis", "Make Prediction"],
+    index=2
+)
+
+if page == "About":
+    about_page()
+elif page == "Feature Analysis":
+    feature_analysis_page()
+elif page == "Make Prediction":
+    prediction_page()
 
 # Footer
 st.markdown("---")
