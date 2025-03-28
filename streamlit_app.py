@@ -9,6 +9,7 @@ import re
 import gspread
 from gspread_dataframe import get_as_dataframe
 from sklearn.base import is_classifier
+from datetime import datetime
 
 # Set page configuration
 st.set_page_config(
@@ -258,21 +259,77 @@ elif page == "Make Prediction":
                 else:
                     st.warning("⚠️ This client is unlikely to return within 3 months")
                     
+                # Save prediction to history
+                prediction_history = {
+                    'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'postal_code': postal_code,
+                    'prediction': "Will Return" if prediction[0] == 1 else "Will Not Return",
+                    'probability': f"{probability:.1%}",
+                    'weekly_visits': weekly_visits,
+                    'pickup_count_last_14_days': pickup_count_last_14_days
+                }
+                
             except Exception as e:
                 st.error(f"Prediction failed: {str(e)}")
                 st.error("Please check your input values and try again")
 
-# ================== GSpread Integration ==================
+# ================== Enhanced GSpread Integration ==================
 if page == "Make Prediction":
+    st.markdown("---")
+    st.subheader("Data Integration Status")
+    
+    connection_status = st.empty()
+    data_display = st.empty()
+    
     try:
-        # Only attempt if credentials exist
-        if os.path.exists("service_account.json"):
-            gc = gspread.service_account(filename="service_account.json")
-            sheet_url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQwjh9k0hk536tHDO3cgmCb6xvu6GMAcLUUW1aVqKI-bBw-3mb5mz1PTRZ9XSfeLnlmrYs1eTJH3bvJ/pubhtml"
-            worksheet = gc.open_by_url(sheet_url).sheet1
-            df = get_as_dataframe(worksheet)
-            
-            with st.expander("View Recent Client Data"):
-                st.dataframe(df.head())
+        # Check for credentials
+        if not os.path.exists("service_account.json"):
+            connection_status.warning("ℹ️ Google Sheets integration not configured - using local mode")
+        else:
+            with st.spinner("Connecting to Google Sheets..."):
+                try:
+                    # Step 1: Authenticate
+                    gc = gspread.service_account(filename="service_account.json")
+                    connection_status.info("🔐 Authentication successful")
+                    
+                    # Step 2: Access spreadsheet
+                    sheet_url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQwjh9k0hk536tHDO3cgmCb6xvu6GMAcLUUW1aVqKI-bBw-3mb5mz1PTRZ9XSfeLnlmrYs1eTJH3bvJ/pubhtml"
+                    sh = gc.open_by_url(sheet_url)
+                    worksheet = sh.sheet1
+                    connection_status.success("📊 Connected to Google Sheet")
+                    
+                    # Step 3: Load data
+                    with st.spinner("Loading client data..."):
+                        df = get_as_dataframe(worksheet)
+                        if df.empty:
+                            connection_status.warning("⚠️ Loaded empty dataset")
+                        else:
+                            connection_status.success(f"✅ Successfully loaded {len(df)} client records")
+                            
+                            # Display data
+                            with data_display.expander("View Live Client Data", expanded=False):
+                                st.dataframe(df.head(10))
+                                st.caption(f"Last refreshed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                                
+                except gspread.exceptions.APIError as e:
+                    connection_status.error(f"🔴 API Error: {str(e)}")
+                except gspread.exceptions.SpreadsheetNotFound:
+                    connection_status.error("🔍 Spreadsheet not found - please check URL")
+                except Exception as e:
+                    connection_status.error(f"⚠️ Unexpected error: {str(e)}")
+                    
     except Exception as e:
-        st.warning(f"Google Sheets integration skipped: {str(e)}")
+        connection_status.error(f"❌ Connection failed: {str(e)}")
+        st.warning("Proceeding with local data only")
+
+# Footer
+st.markdown("---")
+st.markdown(
+    """
+    <div style='text-align: center; padding: 20px;'>
+    <p>IFSSA Client Return Predictor • v1.0</p>
+    <p><small>For support contact: support@ifssa.org</small></p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
