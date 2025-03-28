@@ -6,16 +6,13 @@ import os
 import matplotlib.pyplot as plt
 import seaborn as sns
 import re  # Added this import for postal code validation
-import gspread
-from gspread_dataframe import get_as_dataframe
-from google.oauth2.service_account import Credentials
 
 # Set page configuration
 st.set_page_config(
     layout="wide",
     page_title="IFSSA Return Predictor"
 )
-
+a
 # Load and Display Logos
 col1, col2, _ = st.columns([0.15, 0.15, 0.7])
 with col1:
@@ -62,6 +59,7 @@ if page == "About":
     - Streamline Stakeholder Communication
     - Facilitate Informed Decision Making
     - Ensure Scalability and Flexibility
+
     """)
 
 # ================== Feature Analysis ==================
@@ -226,6 +224,7 @@ elif page == "Make Prediction":
                     
             except Exception as e:
                 st.error(f"❌ Error making prediction: {str(e)}")
+
 
 # ================== Google Sheets Integration ==================
 # Google Sheets Authentication
