@@ -8,6 +8,7 @@ import seaborn as sns
 import re
 import gspread
 from gspread_dataframe import get_as_dataframe
+from sklearn.base import is_classifier
 
 # Set page configuration
 st.set_page_config(
@@ -89,13 +90,13 @@ elif page == "Feature Analysis":
     
     # Visualization
     st.markdown("### Feature Significance (-log10 p-values)")
-    plt.figure(figsize=(10, 6))
-    ax = sns.barplot(x='-log10(p)', y=chi_df.index, data=chi_df, palette="viridis")
-    plt.axvline(-np.log10(0.05), color='red', linestyle='--', label='p=0.05 threshold')
-    plt.xlabel("Statistical Significance (-log10 p-value)")
-    plt.ylabel("Features")
-    plt.title("Chi-Square Test Results for Feature Selection")
-    st.pyplot(plt)
+    fig, ax = plt.subplots(figsize=(10, 6))
+    sns.barplot(x='-log10(p)', y=chi_df.index, data=chi_df, palette="viridis", ax=ax)
+    ax.axvline(-np.log10(0.05), color='red', linestyle='--', label='p=0.05 threshold')
+    ax.set_xlabel("Statistical Significance (-log10 p-value)")
+    ax.set_ylabel("Features")
+    ax.set_title("Chi-Square Test Results for Feature Selection")
+    st.pyplot(fig)
     
     # Interpretation
     st.markdown("""
@@ -110,34 +111,40 @@ elif page == "Feature Analysis":
 elif page == "Make Prediction":
     st.markdown("<h2 style='color: #33aaff;'>Client Return Prediction</h2>", unsafe_allow_html=True)
 
-    # Improved Load Model Function with better error handling
+    @st.cache_resource
     def load_model():
+        """Load and validate the machine learning model"""
         model_path = "RF_model.pkl"
         try:
-            if os.path.exists(model_path):
-                model = joblib.load(model_path)
-                # Verify the model has the required methods
-                if hasattr(model, 'predict') and hasattr(model, 'predict_proba'):
-                    return model
-                st.error("Loaded model doesn't have required methods (predict/predict_proba)")
-                return None
-            st.error(f"Model file not found at: {os.path.abspath(model_path)}")
-            return None
+            if not os.path.exists(model_path):
+                raise FileNotFoundError(f"Model file not found at: {os.path.abspath(model_path)}")
+            
+            model = joblib.load(model_path)
+            
+            # Validate it's a proper sklearn classifier
+            if not is_classifier(model):
+                raise ValueError("Loaded model is not a classifier")
+                
+            if not (hasattr(model, 'predict') and hasattr(model, 'predict_proba')):
+                raise AttributeError("Model missing required methods (predict/predict_proba)")
+                
+            return model
+            
         except Exception as e:
-            st.error(f"Error loading model: {str(e)}")
+            st.error(f"❌ Model loading failed: {str(e)}")
+            st.error("""
+            Please ensure:
+            1. 'RF_model.pkl' exists in the same directory
+            2. The file is a valid scikit-learn model
+            3. You have matching Python/scikit-learn versions
+            """)
             return None
 
-    # Load Model with status indicator
+    # Load model with progress indicator
     with st.spinner("Loading prediction model..."):
         model = load_model()
-    
+        
     if model is None:
-        st.error("""
-        ⚠️ Model failed to load. Please ensure:
-        1. 'RF_model.pkl' exists in the same directory
-        2. The file is a valid scikit-learn model
-        3. You have required dependencies installed
-        """)
         st.stop()
 
     # Input Features Section
@@ -161,26 +168,23 @@ elif page == "Make Prediction":
     st.markdown("<h3 style='color: #ff5733;'>Additional Information</h3>", unsafe_allow_html=True)
     col3, col4 = st.columns(2)
     with col3:
-        Holidays = 1 if st.radio("Is this pick-up during a holiday?", ["No", "Yes"]) == "Yes" else 0
+        Holidays = st.selectbox("Is this pick-up during a holiday?", ["No", "Yes"], index=0)
+        Holidays = 1 if Holidays == "Yes" else 0
     
     with col4:
-        # Canadian Postal Code Input with validation
         def validate_postal_code(postal_code):
+            """Validate Canadian postal code format"""
             if not postal_code:
                 return False
-            # Remove spaces and convert to uppercase
             clean_code = postal_code.replace(" ", "").upper()
-            # Check pattern (A1A1A1)
             if len(clean_code) != 6:
                 return False
-            pattern = re.compile(r'^[A-Z]\d[A-Z]\d[A-Z]\d$')
-            return bool(pattern.match(clean_code))
+            return bool(re.match(r'^[A-Z]\d[A-Z]\d[A-Z]\d$', clean_code))
         
         postal_code = st.text_input("Postal Code (A1A 1A1 format):", 
-                                  max_chars=7,
-                                  help="Enter Canadian postal code (e.g., M5V 3L9)")
+                                 max_chars=7,
+                                 help="Enter Canadian postal code (e.g., M5V 3L9)")
         
-        # Validate format
         if postal_code and not validate_postal_code(postal_code):
             st.warning("Please enter a valid Canadian postal code (e.g., A1A 1A1)")
 
@@ -195,7 +199,7 @@ elif page == "Make Prediction":
             pickup_week,
             postal_code.replace(" ", "").upper()[:6] if postal_code else "",
             time_since_first_visit
-        ]], columns=[ 
+        ]], columns=[
             'weekly_visits',
             'total_dependents_3_months',
             'pickup_count_last_30_days',
@@ -206,7 +210,7 @@ elif page == "Make Prediction":
             'time_since_first_visit'
         ])
 
-        # Ensure the columns are in the same order as the trained model
+        # Ensure correct feature order
         model_feature_order = [
             'weekly_visits',
             'total_dependents_3_months',
@@ -217,7 +221,6 @@ elif page == "Make Prediction":
             'postal_code',
             'time_since_first_visit'
         ]
-
         input_data = input_data[model_feature_order]
 
     except Exception as e:
@@ -225,7 +228,7 @@ elif page == "Make Prediction":
         st.stop()
 
     # Prediction Button
-    if st.button("Predict Return Probability"):
+    if st.button("Predict Return Probability", type="primary"):
         if not postal_code:
             st.error("Please enter a postal code")
         elif not validate_postal_code(postal_code):
@@ -234,11 +237,21 @@ elif page == "Make Prediction":
             try:
                 with st.spinner("Making prediction..."):
                     prediction = model.predict(input_data)
-                    probability = model.predict_proba(input_data)[:, 1][0]
+                    probability = model.predict_proba(input_data)[0][1]  # Get probability for class 1
                 
+                # Display results
+                st.markdown("---")
                 st.markdown("<h3 style='color: #ff33aa;'>Prediction Result</h3>", unsafe_allow_html=True)
-                st.write(f"🎯 **Predicted Outcome:** {'Will Return' if prediction[0] == 1 else 'Will Not Return'}")
-                st.write(f"📊 **Probability of Returning:** {probability:.1%}")
+                
+                col_pred, col_prob = st.columns(2)
+                with col_pred:
+                    st.metric("Prediction", 
+                             "Will Return" if prediction[0] == 1 else "Will Not Return",
+                             delta="High probability" if prediction[0] == 1 else "Low probability",
+                             delta_color="normal")
+                
+                with col_prob:
+                    st.metric("Return Probability", f"{probability:.1%}")
                 
                 if prediction[0] == 1:
                     st.success("✅ This client is likely to return within 3 months")
@@ -246,25 +259,20 @@ elif page == "Make Prediction":
                     st.warning("⚠️ This client is unlikely to return within 3 months")
                     
             except Exception as e:
-                st.error(f"❌ Error making prediction: {str(e)}")
-                st.error("Please check that all input values are valid and try again")
+                st.error(f"Prediction failed: {str(e)}")
+                st.error("Please check your input values and try again")
 
-# ================== GSpread Integration (Public Access) ==================
-if page == "Make Prediction":  # Only load this if on prediction page
+# ================== GSpread Integration ==================
+if page == "Make Prediction":
     try:
-        # Access Public Google Sheet without authentication
-        gc = gspread.service_account()  # This will fail if no credentials, but continue anyway
-        
-        # Access the public sheet by URL
-        sheet_url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQwjh9k0hk536tHDO3cgmCb6xvu6GMAcLUUW1aVqKI-bBw-3mb5mz1PTRZ9XSfeLnlmrYs1eTJH3bvJ/pubhtml"
-        worksheet = gc.open_by_url(sheet_url).sheet1
-
-        # Get data from the sheet as a DataFrame
-        df = get_as_dataframe(worksheet)
-
-        # Display data in Streamlit
-        with st.expander("View Google Sheet Data"):
-            st.write("Google Sheet Data:", df)
-
+        # Only attempt if credentials exist
+        if os.path.exists("service_account.json"):
+            gc = gspread.service_account(filename="service_account.json")
+            sheet_url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQwjh9k0hk536tHDO3cgmCb6xvu6GMAcLUUW1aVqKI-bBw-3mb5mz1PTRZ9XSfeLnlmrYs1eTJH3bvJ/pubhtml"
+            worksheet = gc.open_by_url(sheet_url).sheet1
+            df = get_as_dataframe(worksheet)
+            
+            with st.expander("View Recent Client Data"):
+                st.dataframe(df.head())
     except Exception as e:
-        st.warning(f"Could not load Google Sheet data: {str(e)}")
+        st.warning(f"Google Sheets integration skipped: {str(e)}")
