@@ -110,17 +110,34 @@ elif page == "Feature Analysis":
 elif page == "Make Prediction":
     st.markdown("<h2 style='color: #33aaff;'>Client Return Prediction</h2>", unsafe_allow_html=True)
 
-    # Load Model Function
+    # Improved Load Model Function with better error handling
     def load_model():
         model_path = "RF_model.pkl"
-        if os.path.exists(model_path):
-            return joblib.load(model_path)
-        return None
+        try:
+            if os.path.exists(model_path):
+                model = joblib.load(model_path)
+                # Verify the model has the required methods
+                if hasattr(model, 'predict') and hasattr(model, 'predict_proba'):
+                    return model
+                st.error("Loaded model doesn't have required methods (predict/predict_proba)")
+                return None
+            st.error(f"Model file not found at: {os.path.abspath(model_path)}")
+            return None
+        except Exception as e:
+            st.error(f"Error loading model: {str(e)}")
+            return None
 
-    # Load Model
-    model = load_model()
+    # Load Model with status indicator
+    with st.spinner("Loading prediction model..."):
+        model = load_model()
+    
     if model is None:
-        st.error("⚠️ No trained model found. Please upload a trained model to 'RF_model.pkl'.")
+        st.error("""
+        ⚠️ Model failed to load. Please ensure:
+        1. 'RF_model.pkl' exists in the same directory
+        2. The file is a valid scikit-learn model
+        3. You have required dependencies installed
+        """)
         st.stop()
 
     # Input Features Section
@@ -167,53 +184,57 @@ elif page == "Make Prediction":
         if postal_code and not validate_postal_code(postal_code):
             st.warning("Please enter a valid Canadian postal code (e.g., A1A 1A1)")
 
-    # Prepare input data (ensure the column order matches the trained model's order)
-    input_data = pd.DataFrame([[ 
-        weekly_visits,
-        total_dependents_3_months,
-        pickup_count_last_30_days,
-        pickup_count_last_14_days,
-        Holidays,
-        pickup_week,
-        postal_code.replace(" ", "").upper()[:6] if postal_code else "",
-        time_since_first_visit
-    ]], columns=[ 
-        'weekly_visits',
-        'total_dependents_3_months',
-        'pickup_count_last_30_days',
-        'pickup_count_last_14_days',
-        'Holidays',
-        'pickup_week',
-        'postal_code',
-        'time_since_first_visit'
-    ])
+    # Prepare input data
+    try:
+        input_data = pd.DataFrame([[ 
+            weekly_visits,
+            total_dependents_3_months,
+            pickup_count_last_30_days,
+            pickup_count_last_14_days,
+            Holidays,
+            pickup_week,
+            postal_code.replace(" ", "").upper()[:6] if postal_code else "",
+            time_since_first_visit
+        ]], columns=[ 
+            'weekly_visits',
+            'total_dependents_3_months',
+            'pickup_count_last_30_days',
+            'pickup_count_last_14_days',
+            'Holidays',
+            'pickup_week',
+            'postal_code',
+            'time_since_first_visit'
+        ])
 
-    # Ensure the columns are in the same order as the trained model
-    model_feature_order = [
-        'weekly_visits',
-        'total_dependents_3_months',
-        'pickup_count_last_30_days',
-        'pickup_count_last_14_days',
-        'Holidays',
-        'pickup_week',
-        'postal_code',
-        'time_since_first_visit'
-    ]
+        # Ensure the columns are in the same order as the trained model
+        model_feature_order = [
+            'weekly_visits',
+            'total_dependents_3_months',
+            'pickup_count_last_30_days',
+            'pickup_count_last_14_days',
+            'Holidays',
+            'pickup_week',
+            'postal_code',
+            'time_since_first_visit'
+        ]
 
-    input_data = input_data[model_feature_order]  # Reorder columns to match the model's expected order
+        input_data = input_data[model_feature_order]
+
+    except Exception as e:
+        st.error(f"Error preparing input data: {str(e)}")
+        st.stop()
 
     # Prediction Button
     if st.button("Predict Return Probability"):
         if not postal_code:
             st.error("Please enter a postal code")
         elif not validate_postal_code(postal_code):
-            st.error("Please enter a valid Canadian postal code (format: A1A 1A1) ")
-        elif model is None:
-            st.error("❌ No trained model found.")
+            st.error("Please enter a valid Canadian postal code (format: A1A 1A1)")
         else:
             try:
-                prediction = model.predict(input_data)
-                probability = model.predict_proba(input_data)[:, 1][0]
+                with st.spinner("Making prediction..."):
+                    prediction = model.predict(input_data)
+                    probability = model.predict_proba(input_data)[:, 1][0]
                 
                 st.markdown("<h3 style='color: #ff33aa;'>Prediction Result</h3>", unsafe_allow_html=True)
                 st.write(f"🎯 **Predicted Outcome:** {'Will Return' if prediction[0] == 1 else 'Will Not Return'}")
@@ -226,22 +247,24 @@ elif page == "Make Prediction":
                     
             except Exception as e:
                 st.error(f"❌ Error making prediction: {str(e)}")
+                st.error("Please check that all input values are valid and try again")
 
 # ================== GSpread Integration (Public Access) ==================
+if page == "Make Prediction":  # Only load this if on prediction page
+    try:
+        # Access Public Google Sheet without authentication
+        gc = gspread.service_account()  # This will fail if no credentials, but continue anyway
+        
+        # Access the public sheet by URL
+        sheet_url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQwjh9k0hk536tHDO3cgmCb6xvu6GMAcLUUW1aVqKI-bBw-3mb5mz1PTRZ9XSfeLnlmrYs1eTJH3bvJ/pubhtml"
+        worksheet = gc.open_by_url(sheet_url).sheet1
 
-# Access Public Google Sheet without authentication
-try:
-    gc = gspread.Client(None)  # No authentication required for public sheet
-    
-    # Access the public sheet by URL
-    sheet_url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQwjh9k0hk536tHDO3cgmCb6xvu6GMAcLUUW1aVqKI-bBw-3mb5mz1PTRZ9XSfeLnlmrYs1eTJH3bvJ/pubhtml"
-    worksheet = gc.open_by_url(sheet_url).sheet1
+        # Get data from the sheet as a DataFrame
+        df = get_as_dataframe(worksheet)
 
-    # Get data from the sheet as a DataFrame
-    df = get_as_dataframe(worksheet)
+        # Display data in Streamlit
+        with st.expander("View Google Sheet Data"):
+            st.write("Google Sheet Data:", df)
 
-    # Display data in Streamlit
-    st.write("Google Sheet Data:", df)
-
-except Exception as e:
-    st.error(f"Unexpected error: {e}")
+    except Exception as e:
+        st.warning(f"Could not load Google Sheet data: {str(e)}")
