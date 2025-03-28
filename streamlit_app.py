@@ -8,6 +8,7 @@ import seaborn as sns
 import re  # Added this import for postal code validation
 import gspread
 from gspread_dataframe import get_as_dataframe
+from google.oauth2.service_account import Credentials
 
 # Set page configuration
 st.set_page_config(
@@ -61,7 +62,6 @@ if page == "About":
     - Streamline Stakeholder Communication
     - Facilitate Informed Decision Making
     - Ensure Scalability and Flexibility
-
     """)
 
 # ================== Feature Analysis ==================
@@ -227,8 +227,10 @@ elif page == "Make Prediction":
             except Exception as e:
                 st.error(f"❌ Error making prediction: {str(e)}")
 
-# Google Sheets Integration (if applicable)
-gc = gspread.authorize(credentials=None)  # This would use an unauthenticated public access to the sheet
+# ================== Google Sheets Integration ==================
+# Google Sheets Authentication
+creds = Credentials.from_service_account_file("path_to_your_credentials.json", scopes=["https://www.googleapis.com/auth/spreadsheets"])
+gc = gspread.authorize(creds)
 
 # Alternatively, for a public sheet, you can use the URL or sheet key directly:
 sheet_url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSXUCJRkYyqkfNFbyjRkB5NyP4pL4Khh00bmHegBZOpFf9BparWuCsxx7-C7m-Uy6DNBn7fSBs21NKi/pubhtml"
