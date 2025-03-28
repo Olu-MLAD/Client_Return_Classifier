@@ -5,14 +5,16 @@ import joblib
 import os
 import matplotlib.pyplot as plt
 import seaborn as sns
-import re  # Added this import for postal code validation
+import re
+import gspread
+from gspread_dataframe import get_as_dataframe
 
 # Set page configuration
 st.set_page_config(
     layout="wide",
     page_title="IFSSA Return Predictor"
 )
-a
+
 # Load and Display Logos
 col1, col2, _ = st.columns([0.15, 0.15, 0.7])
 with col1:
@@ -59,7 +61,6 @@ if page == "About":
     - Streamline Stakeholder Communication
     - Facilitate Informed Decision Making
     - Ensure Scalability and Flexibility
-
     """)
 
 # ================== Feature Analysis ==================
@@ -104,19 +105,6 @@ elif page == "Feature Analysis":
     - Holiday effects are 10^90 times more significant than chance
     - Postal code explains location-based patterns (p=2.4e-16)
     """)
-    
-    # Feature correlations (placeholder - replace with your actual data)
-    st.markdown("### Feature Relationships")
-    try:
-        # Generate sample correlation data if real data isn't available
-        corr_data = pd.DataFrame(np.random.rand(6, 6), 
-                               columns=chi_df.index[:6], 
-                               index=chi_df.index[:6])
-        plt.figure(figsize=(10, 8))
-        sns.heatmap(corr_data, annot=True, cmap='coolwarm', center=0)
-        st.pyplot(plt)
-    except:
-        st.warning("Correlation data not available. Displaying sample visualization.")
 
 # ================== Make Prediction Page ==================
 elif page == "Make Prediction":
@@ -179,7 +167,7 @@ elif page == "Make Prediction":
         if postal_code and not validate_postal_code(postal_code):
             st.warning("Please enter a valid Canadian postal code (e.g., A1A 1A1)")
 
-    # Prepare input data
+    # Prepare input data (ensure the column order matches the trained model's order)
     input_data = pd.DataFrame([[
         weekly_visits,
         total_dependents_3_months,
@@ -199,6 +187,22 @@ elif page == "Make Prediction":
         'postal_code',
         'time_since_first_visit'
     ])
+
+    # Ensure the columns are in the same order as the trained model
+    model_feature_order = [
+        'weekly_visits',
+        'total_dependents_3_months',
+        'pickup_count_last_30_days',
+        'pickup_count_last_14_days',
+        'Holidays',
+        'pickup_week',
+        'postal_code',
+        'time_since_first_visit'
+    ]
+
+    input_data = input_data[model_feature_order]  # Reorder columns to match the model's expected order
+
+    
 
     # Prediction Button
     if st.button("Predict Return Probability"):
@@ -225,20 +229,3 @@ elif page == "Make Prediction":
             except Exception as e:
                 st.error(f"❌ Error making prediction: {str(e)}")
 
-
-# ================== Google Sheets Integration ==================
-# Google Sheets Authentication
-creds = Credentials.from_service_account_file("path_to_your_credentials.json", scopes=["https://www.googleapis.com/auth/spreadsheets"])
-gc = gspread.authorize(creds)
-
-# Alternatively, for a public sheet, you can use the URL or sheet key directly:
-sheet_url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSXUCJRkYyqkfNFbyjRkB5NyP4pL4Khh00bmHegBZOpFf9BparWuCsxx7-C7m-Uy6DNBn7fSBs21NKi/pubhtml"
-
-# Open the sheet using the URL or the sheet ID
-worksheet = gc.open_by_url(sheet_url).sheet1
-
-# Get the data as a pandas DataFrame
-df = get_as_dataframe(worksheet)
-
-# Display data in Streamlit
-st.write("Google Sheet Data:", df)
