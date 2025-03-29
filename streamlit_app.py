@@ -146,28 +146,16 @@ def exploratory_data_analysis_page():
     st.markdown("<h2 style='color: #33aaff;'>Exploratory Data Analysis</h2>", unsafe_allow_html=True)
     st.markdown("<p style='color: #666;'>Exploring the dataset to understand structure, patterns, and insights.</p>", unsafe_allow_html=True)
     
-    # Chart descriptions
-    chart_descriptions = [
-        "Client Visits Over Time: Shows the trend of client visits throughout the year",
-        "Visit Frequency Distribution: Displays how often clients typically visit",
-        "Return Rate by Visit Frequency: Shows the relationship between visit frequency and return probability",
-        "Seasonal Patterns: Highlights any seasonal trends in client visits",
-        "Dependents Impact: Illustrates how number of dependents affects return rates",
-        "Holiday Effect: Shows how holidays influence client return behavior",
-        "Time Since First Visit: Demonstrates how recency of first visit impacts return probability"
-    ]
-    
     # Display Pre-generated Charts
     cols = st.columns(2)
     for i in range(1, 8):
         try:
             img = Image.open(f"chart{i}.png")
             with cols[(i-1) % 2]:
-                st.image(img, caption=chart_descriptions[i-1], use_container_width=True)
+                st.image(img, caption=f"Chart {i}", use_container_width=True)
         except FileNotFoundError:
             with cols[(i-1) % 2]:
                 st.warning(f"Chart image not found: chart{i}.png")
-                st.info(chart_descriptions[i-1])
 
 def feature_analysis_page():
     st.markdown("## Statistically Validated Predictors")
