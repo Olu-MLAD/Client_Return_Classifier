@@ -12,4 +12,4 @@ tensorflow
 torch
 gspread 
 gspread-dataframe
-shap>=0.44.0
+shap
