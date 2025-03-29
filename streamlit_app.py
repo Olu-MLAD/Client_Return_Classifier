@@ -5,7 +5,6 @@ import joblib
 import os
 import matplotlib.pyplot as plt
 import seaborn as sns
-import re
 import gspread
 from gspread_dataframe import get_as_dataframe
 from sklearn.base import is_classifier
@@ -21,15 +20,6 @@ st.set_page_config(
 )
 
 # --- Helper Functions ---
-def validate_postal_code(postal_code):
-    """Validate Canadian postal code format"""
-    if not postal_code:
-        return False
-    clean_code = postal_code.replace(" ", "").upper()
-    if len(clean_code) != 6:
-        return False
-    return bool(re.match(r'^[A-Z]\d[A-Z]\d[A-Z]\d$', clean_code))
-
 @st.cache_resource
 def load_model():
     """Load and validate the machine learning model"""
@@ -175,14 +165,14 @@ def xai_insights_page():
         show_fallback_xai()
         return
 
-    # Create sample data with updated features
+    # Create sample data with features in specified order
     X = pd.DataFrame({
-        'weekly_visits': [3, 1, 4],
-        'pickup_count_last_90_days': [8, 3, 12],  # Replaced total_dependents
-        'pickup_count_last_30_days': [4, 2, 5],
-        'pickup_count_last_14_days': [2, 1, 3],
         'pickup_week': [25, 10, 50],
-        'time_since_first_visit': [90, 30, 180]
+        'pickup_count_last_14_days': [2, 1, 3],
+        'pickup_count_last_30_days': [4, 2, 5],
+        'pickup_count_last_90_days': [8, 3, 12],
+        'time_since_first_visit': [90, 30, 180],
+        'weekly_visits': [3, 1, 4]
     })
 
     try:
@@ -229,14 +219,14 @@ def show_fallback_xai():
     st.warning("Showing simplified feature importance")
     
     features = [
-        'weekly_visits',
-        'pickup_count_last_90_days',  # Replaced total_dependents
-        'pickup_count_last_30_days',
-        'pickup_count_last_14_days',
         'pickup_week',
-        'time_since_first_visit'
+        'pickup_count_last_14_days',
+        'pickup_count_last_30_days',
+        'pickup_count_last_90_days',
+        'time_since_first_visit',
+        'weekly_visits'
     ]
-    importance = [0.35, 0.25, 0.15, 0.10, 0.05, 0.02]
+    importance = [0.05, 0.10, 0.15, 0.25, 0.02, 0.35]
     
     fig, ax = plt.subplots(figsize=(12, 6))
     sns.barplot(x=importance, y=features, palette="viridis")
@@ -261,19 +251,19 @@ def prediction_page():
     if model is None:
         st.stop()
 
-    # Input form with updated features
+    # Input form with features in specified order
     with st.form("prediction_form"):
         col1, col2 = st.columns(2)
         
         with col1:
-            pickup_count_last_90_days = st.number_input("Pickups in last 90 days:", min_value=0, value=0)
-            pickup_count_last_30_days = st.number_input("Pickups in last 30 days:", min_value=0, value=0)
-            weekly_visits = st.number_input("Weekly Visits:", min_value=0, value=3)
-
-        with col2:
-            pickup_count_last_14_days = st.number_input("Pickups in last 14 days:", min_value=0, value=0)
-            time_since_first_visit = st.number_input("Time Since First Visit (days):", min_value=1, max_value=366, value=30)
             pickup_week = st.number_input("Pickup Week (1-52):", min_value=1, max_value=52, value=1)
+            pickup_count_last_14_days = st.number_input("Pickups in last 14 days:", min_value=0, value=0)
+            pickup_count_last_30_days = st.number_input("Pickups in last 30 days:", min_value=0, value=0)
+            
+        with col2:
+            pickup_count_last_90_days = st.number_input("Pickups in last 90 days:", min_value=0, value=0)
+            time_since_first_visit = st.number_input("Time Since First Visit (days):", min_value=1, max_value=366, value=30)
+            weekly_visits = st.number_input("Weekly Visits:", min_value=0, value=3)
 
         submitted = st.form_submit_button("Predict Return Probability", type="primary")
 
@@ -281,19 +271,19 @@ def prediction_page():
     if submitted:
         try:
             input_data = pd.DataFrame([[ 
-                weekly_visits,
-                pickup_count_last_90_days,
-                pickup_count_last_30_days,
-                pickup_count_last_14_days,
                 pickup_week,
-                time_since_first_visit
+                pickup_count_last_14_days,
+                pickup_count_last_30_days,
+                pickup_count_last_90_days,
+                time_since_first_visit,
+                weekly_visits
             ]], columns=[
-                'weekly_visits',
-                'pickup_count_last_90_days',
-                'pickup_count_last_30_days',
-                'pickup_count_last_14_days',
                 'pickup_week',
-                'time_since_first_visit'
+                'pickup_count_last_14_days',
+                'pickup_count_last_30_days',
+                'pickup_count_last_90_days',
+                'time_since_first_visit',
+                'weekly_visits'
             ])
 
             with st.spinner("Making prediction..."):
@@ -351,7 +341,7 @@ st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; padding: 20px;'>
-    <p>IFSSA Client Return Predictor • v1.5</p>
+    <p>IFSSA Client Return Predictor • v1.7</p>
     <p><small>For support contact: support@ifssa.org</small></p>
     </div>
     """,
