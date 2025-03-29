@@ -160,10 +160,10 @@ def exploratory_data_analysis_page():
                 st.warning(f"Chart image not found: chart{i}.png")
 
 def xai_insights_page():
-    st.markdown("<h2 style='color: #33aaff;'>Model Explainability (XAI)</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='color: #33aaff;'>XAI Insights</h2>", unsafe_allow_html=True)
     st.markdown("""
     <p style='color: #666;'>
-    Understand how the model makes predictions using SHAP (SHapley Additive exPlanations) values.
+    Explainable AI (XAI) helps understand how the model makes predictions using SHAP values.
     </p>
     """, unsafe_allow_html=True)
 
@@ -187,8 +187,8 @@ def xai_insights_page():
     })
 
     try:
-        # Compute SHAP values with robust settings
-        with st.spinner("Computing SHAP explanations (this may take a moment)..."):
+        # Compute SHAP values with correct settings
+        with st.spinner("Computing SHAP explanations..."):
             explainer = shap.TreeExplainer(
                 model,
                 feature_perturbation="interventional",
@@ -197,7 +197,7 @@ def xai_insights_page():
             shap_values = explainer.shap_values(X, check_additivity=False)
 
             # SHAP Summary Plot (Bar Chart)
-            st.markdown("### Feature Importance")
+            st.markdown("### Feature Importance (SHAP Values)")
             fig, ax = plt.subplots(figsize=(12, 6))
             shap.summary_plot(shap_values[1], X, plot_type="bar", show=False)
             plt.title("Which Features Most Influence Predictions?")
@@ -212,15 +212,13 @@ def xai_insights_page():
             st.pyplot(fig)
             plt.close()
 
-            # Interpretation guide
             st.markdown("""
             **Interpreting the Results**:
-            
             - **Feature Importance**: Shows which factors most influence whether clients return
-            - **Value Impact**: Shows how different values for each feature affect predictions
-            - Red = Higher values, Blue = Lower values
-            - Points to the right increase likelihood of returning
-            - Points to the left decrease likelihood of returning
+            - **Value Impact**: Shows how different values affect predictions
+            - Right of center = increases return probability
+            - Left of center = decreases return probability
+            - Color shows feature value (red=high, blue=low)
             """)
 
     except Exception as e:
@@ -339,10 +337,10 @@ def prediction_page():
 # --- Main App Logic ---
 display_header()
 
-# Navigation - Updated to exclude Feature Analysis
+# Navigation
 page = st.sidebar.radio(
     "Navigation",
-    ["About", "Exploratory Data Analysis", "Model Explainability", "Make Prediction"],
+    ["About", "Exploratory Data Analysis", "XAI Insights", "Make Prediction"],
     index=3
 )
 
@@ -350,7 +348,7 @@ if page == "About":
     about_page()
 elif page == "Exploratory Data Analysis":
     exploratory_data_analysis_page()
-elif page == "Model Explainability":
+elif page == "XAI Insights":
     xai_insights_page()
 elif page == "Make Prediction":
     prediction_page()
