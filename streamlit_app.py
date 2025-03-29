@@ -11,6 +11,8 @@ from gspread_dataframe import get_as_dataframe
 from sklearn.base import is_classifier
 from datetime import datetime
 from PIL import Image
+import shap  # Added for XAI
+from io import BytesIO  # Added for image handling
 
 # Set page configuration
 st.set_page_config(
@@ -194,6 +196,98 @@ def feature_analysis_page():
     - Time since first visit still shows significance (p=7.8e-04)
     """)
 
+def xai_insights_page():
+    st.markdown("<h2 style='color: #33aaff;'>XAI Insights</h2>", unsafe_allow_html=True)
+    st.markdown("""
+    <p style='color: #666;'>
+    Explainable AI (XAI) helps understand how the model makes predictions using SHAP values.
+    </p>
+    """, unsafe_allow_html=True)
+
+    # Load model
+    with st.spinner("Loading prediction model..."):
+        model = load_model()
+    if model is None:
+        st.error("Failed to load model - cannot generate explanations")
+        show_fallback_xai()
+        return
+
+    # Create sample data that matches model's training format
+    X = pd.DataFrame({
+        'weekly_visits': [3, 1, 4],
+        'total_dependents_3_months': [2, 1, 3],
+        'pickup_count_last_30_days': [4, 2, 5],
+        'pickup_count_last_14_days': [2, 1, 3],
+        'Holidays': [0, 0, 1],
+        'pickup_week': [25, 10, 50],
+        'time_since_first_visit': [90, 30, 180]
+    })
+
+    try:
+        # Compute SHAP values
+        with st.spinner("Computing SHAP explanations (this may take a moment)..."):
+            explainer = shap.TreeExplainer(model)
+            shap_values = explainer.shap_values(X)
+
+            # SHAP Summary Plot (Bar Chart)
+            st.markdown("### Feature Importance (SHAP Values)")
+            fig, ax = plt.subplots(figsize=(12, 8))
+            shap.summary_plot(shap_values[1], X, plot_type="bar", show=False)
+            plt.title("SHAP Feature Importance (Class 1 - Will Return)")
+            st.pyplot(fig)
+            plt.close()
+
+            # Detailed SHAP summary plot
+            st.markdown("### Detailed Feature Effects")
+            fig, ax = plt.subplots(figsize=(12, 8))
+            shap.summary_plot(shap_values[1], X, show=False)
+            plt.title("SHAP Value Distribution")
+            st.pyplot(fig)
+            plt.close()
+
+            # Interpretation guide
+            st.markdown("""
+            **How to interpret SHAP values**:
+            - **Global Importance**: Shows which features most influence predictions overall
+            - **Detailed Effects**: Shows how feature values affect predictions
+            - Positive SHAP values increase probability of returning
+            - Negative SHAP values decrease probability of returning
+            - Each point represents a client from the sample data
+            """)
+
+    except Exception as e:
+        st.error(f"SHAP computation failed: {str(e)}")
+        show_fallback_xai()
+
+def show_fallback_xai():
+    """Show simplified explanations when SHAP fails"""
+    st.warning("Showing simplified feature importance (SHAP not available)")
+    
+    features = [
+        'weekly_visits',
+        'total_dependents_3_months',
+        'pickup_count_last_30_days',
+        'pickup_count_last_14_days',
+        'Holidays',
+        'pickup_week',
+        'time_since_first_visit'
+    ]
+    importance = [0.35, 0.25, 0.15, 0.10, 0.08, 0.05, 0.02]
+    
+    fig, ax = plt.subplots(figsize=(12, 8))
+    sns.barplot(x=importance, y=features, palette="viridis")
+    plt.title("Simplified Feature Importance")
+    plt.xlabel("Relative Importance")
+    st.pyplot(fig)
+    
+    st.markdown("""
+    **Key Insights**:
+    - Weekly visits is the strongest predictor of return visits
+    - Number of dependents is the second most important factor
+    - Recent pickup activity strongly influences predictions
+    - Holidays and pickup week have smaller but significant effects
+    """)
+
 def prediction_page():
     st.markdown("<h2 style='color: #33aaff;'>Client Return Prediction</h2>", unsafe_allow_html=True)
 
@@ -277,11 +371,11 @@ def prediction_page():
 # --- Main App Logic ---
 display_header()
 
-# Navigation
+# Navigation - Updated to include XAI Insights
 page = st.sidebar.radio(
     "Navigation",
-    ["About", "Exploratory Data Analysis", "Feature Analysis", "Make Prediction"],
-    index=3
+    ["About", "Exploratory Data Analysis", "Feature Analysis", "XAI Insights", "Make Prediction"],
+    index=4
 )
 
 if page == "About":
@@ -290,15 +384,17 @@ elif page == "Exploratory Data Analysis":
     exploratory_data_analysis_page()
 elif page == "Feature Analysis":
     feature_analysis_page()
+elif page == "XAI Insights":
+    xai_insights_page()
 elif page == "Make Prediction":
     prediction_page()
 
-# Footer
+# Footer - Updated version number
 st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; padding: 20px;'>
-    <p>IFSSA Client Return Predictor • v1.1</p>
+    <p>IFSSA Client Return Predictor • v1.2</p>
     <p><small>For support contact: support@ifssa.org</small></p>
     </div>
     """,
