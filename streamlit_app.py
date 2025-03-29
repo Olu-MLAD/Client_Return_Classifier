@@ -11,8 +11,8 @@ from gspread_dataframe import get_as_dataframe
 from sklearn.base import is_classifier
 from datetime import datetime
 from PIL import Image
-import shap  # Added for XAI
-from io import BytesIO  # Added for image handling
+import shap
+from io import BytesIO
 
 # Set page configuration
 st.set_page_config(
@@ -159,48 +159,11 @@ def exploratory_data_analysis_page():
             with cols[(i-1) % 2]:
                 st.warning(f"Chart image not found: chart{i}.png")
 
-def feature_analysis_page():
-    st.markdown("## Statistically Validated Predictors")
-    
-    chi2_results = {
-        'monthly_visits': 0.000000e+00,
-        'weekly_visits': 0.000000e+00,
-        'total_dependents_3_months': 0.000000e+00,
-        'pickup_count_last_90_days': 0.000000e+00,
-        'pickup_count_last_30_days': 0.000000e+00,
-        'pickup_count_last_14_days': 0.000000e+00,
-        'pickup_count_last_7_days': 0.000000e+00,
-        'Holidays': 8.394089e-90,
-        'pickup_week': 1.064300e-69,
-        'time_since_first_visit': 7.845354e-04
-    }
-    
-    chi_df = pd.DataFrame.from_dict(chi2_results, orient='index', columns=['p-value'])
-    chi_df['-log10(p)'] = -np.log10(chi_df['p-value'].replace(0, 1e-300))
-    chi_df = chi_df.sort_values('-log10(p)', ascending=False)
-    
-    st.markdown("### Feature Significance (-log10 p-values)")
-    fig, ax = plt.subplots(figsize=(10, 6))
-    sns.barplot(x='-log10(p)', y=chi_df.index, data=chi_df, palette="viridis", ax=ax)
-    ax.axvline(-np.log10(0.05), color='red', linestyle='--', label='p=0.05 threshold')
-    ax.set_xlabel("Statistical Significance (-log10 p-value)")
-    ax.set_ylabel("Features")
-    ax.set_title("Chi-Square Test Results for Feature Selection")
-    st.pyplot(fig)
-    
-    st.markdown("""
-    **Key Insights**:
-    - All shown features are statistically significant (p < 0.05)
-    - Visit frequency metrics are strongest predictors (p ≈ 0)
-    - Holiday effects are 10^90 times more significant than chance
-    - Time since first visit still shows significance (p=7.8e-04)
-    """)
-
 def xai_insights_page():
-    st.markdown("<h2 style='color: #33aaff;'>XAI Insights</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='color: #33aaff;'>Model Explainability (XAI)</h2>", unsafe_allow_html=True)
     st.markdown("""
     <p style='color: #666;'>
-    Explainable AI (XAI) helps understand how the model makes predictions using SHAP values.
+    Understand how the model makes predictions using SHAP (SHapley Additive exPlanations) values.
     </p>
     """, unsafe_allow_html=True)
 
@@ -224,44 +187,49 @@ def xai_insights_page():
     })
 
     try:
-        # Compute SHAP values
+        # Compute SHAP values with robust settings
         with st.spinner("Computing SHAP explanations (this may take a moment)..."):
-            explainer = shap.TreeExplainer(model)
-            shap_values = explainer.shap_values(X)
+            explainer = shap.TreeExplainer(
+                model,
+                feature_perturbation="interventional",
+                model_output="probability"
+            )
+            shap_values = explainer.shap_values(X, check_additivity=False)
 
             # SHAP Summary Plot (Bar Chart)
-            st.markdown("### Feature Importance (SHAP Values)")
-            fig, ax = plt.subplots(figsize=(12, 8))
+            st.markdown("### Feature Importance")
+            fig, ax = plt.subplots(figsize=(12, 6))
             shap.summary_plot(shap_values[1], X, plot_type="bar", show=False)
-            plt.title("SHAP Feature Importance (Class 1 - Will Return)")
+            plt.title("Which Features Most Influence Predictions?")
             st.pyplot(fig)
             plt.close()
 
             # Detailed SHAP summary plot
-            st.markdown("### Detailed Feature Effects")
-            fig, ax = plt.subplots(figsize=(12, 8))
+            st.markdown("### How Feature Values Affect Predictions")
+            fig, ax = plt.subplots(figsize=(12, 6))
             shap.summary_plot(shap_values[1], X, show=False)
-            plt.title("SHAP Value Distribution")
+            plt.title("Feature Value Impact on Predictions")
             st.pyplot(fig)
             plt.close()
 
             # Interpretation guide
             st.markdown("""
-            **How to interpret SHAP values**:
-            - **Global Importance**: Shows which features most influence predictions overall
-            - **Detailed Effects**: Shows how feature values affect predictions
-            - Positive SHAP values increase probability of returning
-            - Negative SHAP values decrease probability of returning
-            - Each point represents a client from the sample data
+            **Interpreting the Results**:
+            
+            - **Feature Importance**: Shows which factors most influence whether clients return
+            - **Value Impact**: Shows how different values for each feature affect predictions
+            - Red = Higher values, Blue = Lower values
+            - Points to the right increase likelihood of returning
+            - Points to the left decrease likelihood of returning
             """)
 
     except Exception as e:
-        st.error(f"SHAP computation failed: {str(e)}")
+        st.error(f"Detailed explanation failed: {str(e)}")
         show_fallback_xai()
 
 def show_fallback_xai():
     """Show simplified explanations when SHAP fails"""
-    st.warning("Showing simplified feature importance (SHAP not available)")
+    st.warning("Showing simplified feature importance")
     
     features = [
         'weekly_visits',
@@ -274,7 +242,7 @@ def show_fallback_xai():
     ]
     importance = [0.35, 0.25, 0.15, 0.10, 0.08, 0.05, 0.02]
     
-    fig, ax = plt.subplots(figsize=(12, 8))
+    fig, ax = plt.subplots(figsize=(12, 6))
     sns.barplot(x=importance, y=features, palette="viridis")
     plt.title("Simplified Feature Importance")
     plt.xlabel("Relative Importance")
@@ -371,30 +339,28 @@ def prediction_page():
 # --- Main App Logic ---
 display_header()
 
-# Navigation - Updated to include XAI Insights
+# Navigation - Updated to exclude Feature Analysis
 page = st.sidebar.radio(
     "Navigation",
-    ["About", "Exploratory Data Analysis", "Feature Analysis", "XAI Insights", "Make Prediction"],
-    index=4
+    ["About", "Exploratory Data Analysis", "Model Explainability", "Make Prediction"],
+    index=3
 )
 
 if page == "About":
     about_page()
 elif page == "Exploratory Data Analysis":
     exploratory_data_analysis_page()
-elif page == "Feature Analysis":
-    feature_analysis_page()
-elif page == "XAI Insights":
+elif page == "Model Explainability":
     xai_insights_page()
 elif page == "Make Prediction":
     prediction_page()
 
-# Footer - Updated version number
+# Footer
 st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; padding: 20px;'>
-    <p>IFSSA Client Return Predictor • v1.2</p>
+    <p>IFSSA Client Return Predictor • v1.3</p>
     <p><small>For support contact: support@ifssa.org</small></p>
     </div>
     """,
