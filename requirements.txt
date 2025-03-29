@@ -12,3 +12,4 @@ tensorflow
 torch
 gspread 
 gspread-dataframe
+shap
