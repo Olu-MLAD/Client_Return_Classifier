@@ -10,6 +10,7 @@ import gspread
 from gspread_dataframe import get_as_dataframe
 from sklearn.base import is_classifier
 from datetime import datetime
+from PIL import Image
 
 # Set page configuration
 st.set_page_config(
@@ -141,6 +142,33 @@ def about_page():
     - Ensure Scalability and Flexibility
     """)
 
+def exploratory_data_analysis_page():
+    st.markdown("<h2 style='color: #33aaff;'>Exploratory Data Analysis</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #666;'>Exploring the dataset to understand structure, patterns, and insights.</p>", unsafe_allow_html=True)
+    
+    # Chart descriptions
+    chart_descriptions = [
+        "Client Visits Over Time: Shows the trend of client visits throughout the year",
+        "Visit Frequency Distribution: Displays how often clients typically visit",
+        "Return Rate by Visit Frequency: Shows the relationship between visit frequency and return probability",
+        "Seasonal Patterns: Highlights any seasonal trends in client visits",
+        "Dependents Impact: Illustrates how number of dependents affects return rates",
+        "Holiday Effect: Shows how holidays influence client return behavior",
+        "Time Since First Visit: Demonstrates how recency of first visit impacts return probability"
+    ]
+    
+    # Display Pre-generated Charts
+    cols = st.columns(2)
+    for i in range(1, 8):
+        try:
+            img = Image.open(f"chart{i}.png")
+            with cols[(i-1) % 2]:
+                st.image(img, caption=chart_descriptions[i-1], use_container_width=True)
+        except FileNotFoundError:
+            with cols[(i-1) % 2]:
+                st.warning(f"Chart image not found: chart{i}.png")
+                st.info(chart_descriptions[i-1])
+
 def feature_analysis_page():
     st.markdown("## Statistically Validated Predictors")
     
@@ -154,7 +182,6 @@ def feature_analysis_page():
         'pickup_count_last_7_days': 0.000000e+00,
         'Holidays': 8.394089e-90,
         'pickup_week': 1.064300e-69,
-        'postal_code': 2.397603e-16,
         'time_since_first_visit': 7.845354e-04
     }
     
@@ -176,7 +203,7 @@ def feature_analysis_page():
     - All shown features are statistically significant (p < 0.05)
     - Visit frequency metrics are strongest predictors (p ≈ 0)
     - Holiday effects are 10^90 times more significant than chance
-    - Postal code explains location-based patterns (p=2.4e-16)
+    - Time since first visit still shows significance (p=7.8e-04)
     """)
 
 def prediction_page():
@@ -202,74 +229,57 @@ def prediction_page():
             time_since_first_visit = st.number_input("Time Since First Visit (days):", min_value=1, max_value=366, value=30)
             pickup_week = st.number_input("Pickup Week (1-52):", min_value=1, max_value=52, value=1)
 
-        col3, col4 = st.columns(2)
-        with col3:
-            Holidays = st.selectbox("Is this pick-up during a holiday?", ["No", "Yes"], index=0)
-            Holidays = 1 if Holidays == "Yes" else 0
-        
-        with col4:
-            postal_code = st.text_input("Postal Code (A1A 1A1 format):", 
-                                     max_chars=7,
-                                     help="Enter Canadian postal code (e.g., M5V 3L9)")
-            
-            if postal_code and not validate_postal_code(postal_code):
-                st.warning("Please enter a valid Canadian postal code (e.g., A1A 1A1)")
+        Holidays = st.selectbox("Is this pick-up during a holiday?", ["No", "Yes"], index=0)
+        Holidays = 1 if Holidays == "Yes" else 0
 
         submitted = st.form_submit_button("Predict Return Probability", type="primary")
 
     # Handle form submission
     if submitted:
-        if not postal_code:
-            st.error("Please enter a postal code")
-        elif not validate_postal_code(postal_code):
-            st.error("Please enter a valid Canadian postal code (format: A1A 1A1)")
-        else:
-            try:
-                input_data = pd.DataFrame([[ 
-                    weekly_visits,
-                    total_dependents_3_months,
-                    pickup_count_last_30_days,
-                    pickup_count_last_14_days,
-                    Holidays,
-                    pickup_week,
-                    postal_code.replace(" ", "").upper()[:6],
-                    time_since_first_visit
-                ]], columns=[
-                    'weekly_visits',
-                    'total_dependents_3_months',
-                    'pickup_count_last_30_days',
-                    'pickup_count_last_14_days',
-                    'Holidays',
-                    'pickup_week',
-                    'postal_code',
-                    'time_since_first_visit'
-                ])
+        try:
+            input_data = pd.DataFrame([[ 
+                weekly_visits,
+                total_dependents_3_months,
+                pickup_count_last_30_days,
+                pickup_count_last_14_days,
+                Holidays,
+                pickup_week,
+                time_since_first_visit
+            ]], columns=[
+                'weekly_visits',
+                'total_dependents_3_months',
+                'pickup_count_last_30_days',
+                'pickup_count_last_14_days',
+                'Holidays',
+                'pickup_week',
+                'time_since_first_visit'
+            ])
 
-                with st.spinner("Making prediction..."):
-                    prediction = model.predict(input_data)
-                    probability = model.predict_proba(input_data)[0][1]
+            with st.spinner("Making prediction..."):
+                prediction = model.predict(input_data)
+                probability = model.predict_proba(input_data)[0][1]
+            
+            # Display results
+            st.markdown("---")
+            st.markdown("<h3 style='color: #ff33aa;'>Prediction Result</h3>", unsafe_allow_html=True)
+            
+            col_pred, col_prob = st.columns(2)
+            with col_pred:
+                st.metric("Prediction", 
+                         "Will Return" if prediction[0] == 1 else "Will Not Return",
+                         delta="High probability" if prediction[0] == 1 else "Low probability",
+                         delta_color="normal")
+            
+            with col_prob:
+                st.metric("Return Probability", f"{probability:.1%}")
+            
+            if prediction[0] == 1:
+                st.success("✅ This client is likely to return within 3 months")
+            else:
+                st.warning("⚠️ This client is unlikely to return within 3 months")
                 
-                # Display results
-                st.markdown("---")
-                st.markdown("<h3 style='color: #ff33aa;'>Prediction Result</h3>", unsafe_allow_html=True)
-                
-                col_pred, col_prob = st.columns(2)
-                with col_pred:
-                    st.metric("Prediction", 
-                             "Will Return" if prediction[0] == 1 else "Will Not Return",
-                             delta="High probability" if prediction[0] == 1 else "Low probability",
-                             delta_color="normal")
-                
-                with col_prob:
-                    st.metric("Return Probability", f"{probability:.1%}")
-                
-                if prediction[0] == 1:
-                    st.success("✅ This client is likely to return within 3 months")
-                else:
-                    st.warning("⚠️ This client is unlikely to return within 3 months")
-                    
-            except Exception as e:
-                st.error(f"Prediction failed: {str(e)}")
+        except Exception as e:
+            st.error(f"Prediction failed: {str(e)}")
 
     # Google Sheets integration
     st.markdown("---")
@@ -282,12 +292,14 @@ display_header()
 # Navigation
 page = st.sidebar.radio(
     "Navigation",
-    ["About", "Feature Analysis", "Make Prediction"],
-    index=2
+    ["About", "Exploratory Data Analysis", "Feature Analysis", "Make Prediction"],
+    index=3
 )
 
 if page == "About":
     about_page()
+elif page == "Exploratory Data Analysis":
+    exploratory_data_analysis_page()
 elif page == "Feature Analysis":
     feature_analysis_page()
 elif page == "Make Prediction":
@@ -298,7 +310,7 @@ st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; padding: 20px;'>
-    <p>IFSSA Client Return Predictor • v1.0</p>
+    <p>IFSSA Client Return Predictor • v1.1</p>
     <p><small>For support contact: support@ifssa.org</small></p>
     </div>
     """,
