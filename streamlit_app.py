@@ -110,6 +110,9 @@ def display_header():
         <p style='text-align: center; font-size: 1.1rem;'>
         Predict which clients will return within 3 months using statistically validated features
         </p>
+        <p style='text-align: center; font-size: 0.9rem; color: #666;'>
+        <b>Model Output:</b> 1 = Will Return, 0 = Will Not Return
+        </p>
         """,
         unsafe_allow_html=True
     )
@@ -121,17 +124,21 @@ def about_page():
     This application helps IFSSA predict which clients are likely to return for services 
     within the next 3 months using machine learning.
     
+    ### Model Interpretation
+    - **1**: Client will return within 3 months (probability ≥ 50%)
+    - **0**: Client will not return within 3 months (probability < 50%)
+    
     ### How It Works
     1. Staff enter client visit information
     2. The system analyzes patterns from historical data
-    3. Predictions guide outreach efforts
+    3. Predictions are made with clear 1/0 outputs
+    4. Probability scores show confidence level
     
     ### Key Benefits
-    - Enhance Response Accuracy
-    - Improve Operational Efficiency
-    - Streamline Stakeholder Communication
-    - Facilitate Informed Decision Making
-    - Ensure Scalability and Flexibility
+    - Clear binary output (1/0) with explanation
+    - Probability scores for nuanced understanding
+    - Feature importance explanations
+    - Easy integration with existing systems
     """)
 
 def exploratory_data_analysis_page():
@@ -155,6 +162,11 @@ def xai_insights_page():
     <p style='color: #666;'>
     Explainable AI (XAI) helps understand how the model makes predictions using SHAP values.
     </p>
+    <div style='background-color: #f0f0f0; padding: 15px; border-radius: 5px; margin-bottom: 20px;'>
+    <b>Model Output Key:</b><br>
+    • <span style='color: green;'>1 = Will Return</span> (probability ≥ 50%)<br>
+    • <span style='color: red;'>0 = Will Not Return</span> (probability < 50%)
+    </div>
     """, unsafe_allow_html=True)
 
     # Load model
@@ -189,24 +201,23 @@ def xai_insights_page():
             st.markdown("### Feature Importance (SHAP Values)")
             fig, ax = plt.subplots(figsize=(12, 6))
             shap.summary_plot(shap_values[1], X, plot_type="bar", show=False)
-            plt.title("Which Features Most Influence Predictions?")
+            plt.title("Which Features Most Influence 'Will Return' Predictions?")
             st.pyplot(fig)
             plt.close()
 
             # Detailed SHAP summary plot
-            st.markdown("### How Feature Values Affect Predictions")
+            st.markdown("### How Feature Values Affect Return Probability")
             fig, ax = plt.subplots(figsize=(12, 6))
             shap.summary_plot(shap_values[1], X, show=False)
-            plt.title("Feature Value Impact on Predictions")
+            plt.title("Feature Value Impact on Return Probability (1=Return)")
             st.pyplot(fig)
             plt.close()
 
             st.markdown("""
             **Interpreting the Results**:
-            - **Feature Importance**: Shows which factors most influence predictions
-            - **Value Impact**: Shows how feature values affect outcomes
-            - Right of center = increases return probability
-            - Left of center = decreases return probability
+            - Features are ordered by their impact on predicting returns (1)
+            - Right of center (positive SHAP values) = increases return probability
+            - Left of center (negative SHAP values) = decreases return probability
             - Color shows feature value (red=high, blue=low)
             """)
 
@@ -230,13 +241,13 @@ def show_fallback_xai():
     
     fig, ax = plt.subplots(figsize=(12, 6))
     sns.barplot(x=importance, y=features, palette="viridis")
-    plt.title("Simplified Feature Importance")
+    plt.title("Simplified Feature Importance for Return Prediction (1=Return)")
     plt.xlabel("Relative Importance")
     st.pyplot(fig)
     
     st.markdown("""
     **Key Insights**:
-    - Weekly visits is the strongest predictor of return visits
+    - Weekly visits is the strongest predictor of return visits (1)
     - Pickups in last 90 days is the second most important factor
     - Recent pickup activity strongly influences predictions
     - Time since first visit has a smaller but significant effect
@@ -244,6 +255,13 @@ def show_fallback_xai():
 
 def prediction_page():
     st.markdown("<h2 style='color: #33aaff;'>Client Return Prediction</h2>", unsafe_allow_html=True)
+    st.markdown("""
+    <div style='background-color: #f0f0f0; padding: 15px; border-radius: 5px; margin-bottom: 20px;'>
+    <b>Remember:</b><br>
+    • <span style='color: green;'>1 = Will Return</span> (probability ≥ 50%)<br>
+    • <span style='color: red;'>0 = Will Not Return</span> (probability < 50%)
+    </div>
+    """, unsafe_allow_html=True)
 
     # Load model
     with st.spinner("Loading prediction model..."):
@@ -294,20 +312,31 @@ def prediction_page():
             st.markdown("---")
             st.markdown("<h3 style='color: #ff33aa;'>Prediction Result</h3>", unsafe_allow_html=True)
             
-            col_pred, col_prob = st.columns(2)
+            col_pred, col_prob, col_expl = st.columns([1,1,2])
             with col_pred:
-                st.metric("Prediction", 
-                         "Will Return" if prediction[0] == 1 else "Will Not Return",
-                         delta="High probability" if prediction[0] == 1 else "Low probability",
+                st.metric("Binary Prediction", 
+                         f"{prediction[0]} - {'Will Return' if prediction[0] == 1 else 'Will Not Return'}",
+                         delta="Positive (1)" if prediction[0] == 1 else "Negative (0)",
                          delta_color="normal")
             
             with col_prob:
-                st.metric("Return Probability", f"{probability:.1%}")
+                st.metric("Return Probability", 
+                         f"{probability:.1%}",
+                         delta="Confidence level")
             
+            with col_expl:
+                st.markdown("""
+                **Interpretation**:
+                - <span style='color: green;'>1 (Will Return)</span>: Probability ≥ 50%
+                - <span style='color: red;'>0 (Will Not Return)</span>: Probability < 50%
+                - Threshold can be adjusted for sensitivity
+                """, unsafe_allow_html=True)
+            
+            # Visual indicator
             if prediction[0] == 1:
-                st.success("✅ This client is likely to return within 3 months")
+                st.success("✅ This client is likely to return within 3 months (prediction = 1)")
             else:
-                st.warning("⚠️ This client is unlikely to return within 3 months")
+                st.warning("⚠️ This client is unlikely to return within 3 months (prediction = 0)")
                 
         except Exception as e:
             st.error(f"Prediction failed: {str(e)}")
@@ -341,8 +370,8 @@ st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; padding: 20px;'>
-    <p>IFSSA Client Return Predictor • v1.7</p>
-    <p><small>For support contact: support@ifssa.org</small></p>
+    <p>IFSSA Client Return Predictor • v1.8</p>
+    <p><small>Model outputs: 1 = Return, 0 = No Return | For support contact: support@ifssa.org</small></p>
     </div>
     """,
     unsafe_allow_html=True
