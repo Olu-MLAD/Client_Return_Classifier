@@ -80,16 +80,13 @@ page = st.sidebar.radio(
     ["About", "Exploratory Data Analysis", "XAI Insights", "Make Prediction", "Chat with Rahim"]
 )
 
-if page == "About":
-    about_page()
-elif page == "Exploratory Data Analysis":
-    exploratory_data_analysis_page()
-elif page == "XAI Insights":
-    xai_insights_page()
-elif page == "Make Prediction":
-    prediction_page()
-elif page == "Chat with Rahim":
-    chat_with_rahim_page()
+def about_page():
+    st.markdown("<h2>About the IFSSA Client Return Predictor</h2>")
+    st.markdown("""
+    This application predicts whether a client will return based on past behavior and data insights. 
+    The model uses a random forest classifier to make predictions and provide actionable insights.
+    """)
+
 
 # Footer
 st.markdown("---")
