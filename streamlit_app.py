@@ -58,11 +58,20 @@ def chat_with_rahim_page():
     - Rahim will provide relevant insights based on available data and predictive analytics.
     """)
     
-    user_input = st.text_input("Ask Rahim anything about IFSSA predictions:")
-    
-    if user_input:
-        st.write("Rahim's Response:")
-        st.success(f"Great question! Here's what I found about: {user_input}")
+    try:
+        user_input = st.text_input("Ask Rahim anything about IFSSA predictions:")
+        
+        if user_input:
+            st.write("Rahim's Response:")
+            
+            # Simulate response based on user input. You can expand this with model logic.
+            if "return prediction" in user_input.lower():
+                st.success("I can help you understand how we predict if a client will return based on their profile and past behavior!")
+            else:
+                st.success(f"Great question! Here's what I found about: {user_input}")
+    except Exception as e:
+        st.error(f"❌ Something went wrong with the chat: {str(e)}")
+
 
 # --- Main App Logic ---
 st.sidebar.title("Navigation")
