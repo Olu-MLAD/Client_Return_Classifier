@@ -72,6 +72,44 @@ def chat_with_rahim_page():
     except Exception as e:
         st.error(f"❌ Something went wrong with the chat: {str(e)}")
 
+# --- Pages ---
+def about_page():
+    st.markdown("<h2>About the IFSSA Client Return Predictor</h2>")
+    st.markdown("""
+    This application predicts whether a client will return based on past behavior and data insights. 
+    The model uses a random forest classifier to make predictions and provide actionable insights.
+    """)
+
+def exploratory_data_analysis_page():
+    st.markdown("<h2>Exploratory Data Analysis</h2>")
+    # Placeholder for EDA visualizations and insights
+    st.markdown("This section will showcase the exploratory data analysis of the IFSSA client data.")
+    # Example plot
+    df = pd.DataFrame(np.random.randn(100, 2), columns=["Feature 1", "Feature 2"])
+    st.write(df)
+    st.line_chart(df)
+
+def xai_insights_page():
+    st.markdown("<h2>XAI Insights</h2>")
+    st.markdown("""
+    Here we provide insights into the model's predictions using explainable AI techniques such as SHAP (SHapley Additive exPlanations).
+    """)
+    
+    # Example: Displaying an image related to XAI
+    image = Image.open("shap_example.png")  # Replace with your image path
+    st.image(image, caption="Example SHAP visualization", use_column_width=True)
+    
+    # Adding more relevant images or plots for the XAI page
+    st.markdown("### Feature Importance")
+    fig, ax = plt.subplots()
+    sns.barplot(x=[0.2, 0.5, 0.3], y=["Feature 1", "Feature 2", "Feature 3"], ax=ax)
+    ax.set_title("Feature Importance")
+    st.pyplot(fig)
+
+def prediction_page():
+    st.markdown("<h2>Make a Prediction</h2>")
+    st.markdown("This section allows users to input client data and receive a prediction on whether they will return.")
+    # Add input fields, model prediction, etc. here
 
 # --- Main App Logic ---
 st.sidebar.title("Navigation")
