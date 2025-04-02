@@ -12,6 +12,8 @@ from datetime import datetime
 from PIL import Image
 import shap
 from io import BytesIO
+from sentence_transformers import SentenceTransformer, util
+from transformers import pipeline
 
 # Set page configuration
 st.set_page_config(
@@ -33,7 +35,7 @@ def load_model():
         if not is_classifier(model):
             raise ValueError("Loaded model is not a classifier")
             
-        if not (hasattr(model, 'predict') and hasattr(model, 'predict_proba')):
+        if not (hasattr(model, 'predict') and hasattr(model, 'predict_proba'):
             raise AttributeError("Model missing required methods")
             
         return model
@@ -48,311 +50,152 @@ def load_model():
         """)
         return None
 
-def connect_to_google_sheets():
-    """Handle Google Sheets connection with status tracking"""
-    status_container = st.container()
-    data_container = st.container()
-    
-    if not os.path.exists("service_account.json"):
-        with status_container:
-            st.info("ℹ️ Google Sheets integration not configured - using local mode")
-            st.caption("To enable Google Sheets, add 'service_account.json' to your directory")
-        return None
-    
+@st.cache_resource
+def load_chatbot_models():
+    """Load chatbot models with error handling"""
     try:
-        with status_container:
-            with st.spinner("Connecting to Google Sheets..."):
-                gc = gspread.service_account(filename="service_account.json")
-                st.success("🔐 Authentication successful")
-                
-                sheet_url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQwjh9k0hk536tHDO3cgmCb6xvu6GMAcLUUW1aVqKI-bBw-3mb5mz1PTRZ9XSfeLnlmrYs1eTJH3bvJ/pubhtml"
-                sh = gc.open_by_url(sheet_url)
-                worksheet = sh.sheet1
-                st.success("📊 Connected to Google Sheet")
-                
-                with st.spinner("Loading client data..."):
-                    df = get_as_dataframe(worksheet)
-                    if df.empty:
-                        st.warning("⚠️ Loaded empty dataset")
-                    else:
-                        st.success(f"✅ Loaded {len(df)} records")
-                        
-                        with data_container.expander("View Live Client Data", expanded=False):
-                            st.dataframe(df.head(10))
-                            st.caption(f"Last refreshed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-                        return df
-                        
-    except gspread.exceptions.APIError as e:
-        with status_container:
-            st.error(f"🔴 API Error: {str(e)}")
-    except gspread.exceptions.SpreadsheetNotFound:
-        with status_container:
-            st.error("🔍 Spreadsheet not found - please check URL")
-    except Exception as e:
-        with status_container:
-            st.error(f"⚠️ Unexpected error: {str(e)}")
-    
-    return None
-
-# --- UI Components ---
-def display_header():
-    col1, col2, _ = st.columns([0.15, 0.15, 0.7])
-    with col1:
-        st.image("logo1.jpeg", width=120)
-    with col2:
-        st.image("logo2.png", width=120)
-    
-    st.markdown(
-        """
-        <h1 style='text-align: center; color: #ff5733; padding: 20px;'>
-        IFSSA Client Return Prediction
-        </h1>
-        <p style='text-align: center; font-size: 1.1rem;'>
-        Predict which clients will return within 3 months using statistically validated features
-        </p>
-        <p style='text-align: center; font-size: 0.9rem; color: #666;'>
-        <b>Model Output:</b> 1 = Will Return, 0 = Will Not Return
-        </p>
-        """,
-        unsafe_allow_html=True
-    )
-
-def about_page():
-    st.markdown("""
-    ## About This Tool
-    
-    This application helps IFSSA predict which clients are likely to return for services 
-    within the next 3 months using machine learning.
-    
-    ### Model Interpretation
-    - **1**: Client will return within 3 months (probability ≥ 50%)
-    - **0**: Client will not return within 3 months (probability < 50%)
-    
-    ### How It Works
-    1. Staff enter client visit information
-    2. The system analyzes patterns from historical data
-    3. Predictions are made with clear 1/0 outputs
-    4. Probability scores show confidence level
-    
-    ### Key Benefits
-    - Clear binary output (1/0) with explanation
-    - Probability scores for nuanced understanding
-    - Feature importance explanations
-    - Easy integration with existing systems
-    """)
-
-def exploratory_data_analysis_page():
-    st.markdown("<h2 style='color: #33aaff;'>Exploratory Data Analysis</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #666;'>Exploring the dataset to understand structure, patterns, and insights.</p>", unsafe_allow_html=True)
-    
-    # Display Pre-generated Charts
-    cols = st.columns(2)
-    for i in range(1, 8):
-        try:
-            img = Image.open(f"chart{i}.png")
-            with cols[(i-1) % 2]:
-                st.image(img, caption=f"Chart {i}", use_container_width=True)
-        except FileNotFoundError:
-            with cols[(i-1) % 2]:
-                st.warning(f"Chart image not found: chart{i}.png")
-
-def xai_insights_page():
-    st.markdown("<h2 style='color: #33aaff;'>XAI Insights</h2>", unsafe_allow_html=True)
-    st.markdown("""
-    <p style='color: #666;'>
-    Explainable AI (XAI) helps understand how the model makes predictions using SHAP values.
-    </p>
-    <div style='background-color: #f0f0f0; padding: 15px; border-radius: 5px; margin-bottom: 20px;'>
-    <b>Model Output Key:</b><br>
-    • <span style='color: green;'>1 = Will Return</span> (probability ≥ 50%)<br>
-    • <span style='color: red;'>0 = Will Not Return</span> (probability < 50%)
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Load model
-    with st.spinner("Loading prediction model..."):
-        model = load_model()
-    if model is None:
-        st.error("Failed to load model - cannot generate explanations")
-        show_fallback_xai()
-        return
-
-    # Create sample data with features in specified order
-    X = pd.DataFrame({
-        'pickup_week': [25, 10, 50],
-        'pickup_count_last_14_days': [2, 1, 3],
-        'pickup_count_last_30_days': [4, 2, 5],
-        'pickup_count_last_90_days': [8, 3, 12],
-        'time_since_first_visit': [90, 30, 180],
-        'weekly_visits': [3, 1, 4]
-    })
-
-    try:
-        # Compute SHAP values with correct settings
-        with st.spinner("Computing SHAP explanations..."):
-            explainer = shap.TreeExplainer(
-                model,
-                feature_perturbation="interventional",
-                model_output="probability"
-            )
-            shap_values = explainer.shap_values(X, check_additivity=False)
-
-            # SHAP Summary Plot (Bar Chart)
-            st.markdown("### Feature Importance (SHAP Values)")
-            fig, ax = plt.subplots(figsize=(12, 6))
-            shap.summary_plot(shap_values[1], X, plot_type="bar", show=False)
-            plt.title("Which Features Most Influence 'Will Return' Predictions?")
-            st.pyplot(fig)
-            plt.close()
-
-            # Detailed SHAP summary plot
-            st.markdown("### How Feature Values Affect Return Probability")
-            fig, ax = plt.subplots(figsize=(12, 6))
-            shap.summary_plot(shap_values[1], X, show=False)
-            plt.title("Feature Value Impact on Return Probability (1=Return)")
-            st.pyplot(fig)
-            plt.close()
-
-            st.markdown("""
-            **Interpreting the Results**:
-            - Features are ordered by their impact on predicting returns (1)
-            - Right of center (positive SHAP values) = increases return probability
-            - Left of center (negative SHAP values) = decreases return probability
-            - Color shows feature value (red=high, blue=low)
-            """)
-
-    except Exception as e:
-        st.error(f"Detailed explanation failed: {str(e)}")
-        show_fallback_xai()
-
-def show_fallback_xai():
-    """Show simplified explanations when SHAP fails"""
-    st.warning("Showing simplified feature importance")
-    
-    features = [
-        'pickup_week',
-        'pickup_count_last_14_days',
-        'pickup_count_last_30_days',
-        'pickup_count_last_90_days',
-        'time_since_first_visit',
-        'weekly_visits'
-    ]
-    importance = [0.05, 0.10, 0.15, 0.25, 0.02, 0.35]
-    
-    fig, ax = plt.subplots(figsize=(12, 6))
-    sns.barplot(x=importance, y=features, palette="viridis")
-    plt.title("Simplified Feature Importance for Return Prediction (1=Return)")
-    plt.xlabel("Relative Importance")
-    st.pyplot(fig)
-    
-    st.markdown("""
-    **Key Insights**:
-    - Weekly visits is the strongest predictor of return visits (1)
-    - Pickups in last 90 days is the second most important factor
-    - Recent pickup activity strongly influences predictions
-    - Time since first visit has a smaller but significant effect
-    """)
-
-def prediction_page():
-    st.markdown("<h2 style='color: #33aaff;'>Client Return Prediction</h2>", unsafe_allow_html=True)
-    st.markdown("""
-    <div style='background-color: #f0f0f0; padding: 15px; border-radius: 5px; margin-bottom: 20px;'>
-    <b>Remember:</b><br>
-    • <span style='color: green;'>1 = Will Return</span> (probability ≥ 50%)<br>
-    • <span style='color: red;'>0 = Will Not Return</span> (probability < 50%)
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Load model
-    with st.spinner("Loading prediction model..."):
-        model = load_model()
-    if model is None:
-        st.stop()
-
-    # Input form with features in specified order
-    with st.form("prediction_form"):
-        col1, col2 = st.columns(2)
+        # Initialize Sentence Transformer Model
+        embedder = SentenceTransformer('all-MiniLM-L6-v2')
         
-        with col1:
-            pickup_week = st.number_input("Pickup Week (1-52):", min_value=1, max_value=52, value=1)
-            pickup_count_last_14_days = st.number_input("Pickups in last 14 days:", min_value=0, value=0)
-            pickup_count_last_30_days = st.number_input("Pickups in last 30 days:", min_value=0, value=0)
-            
-        with col2:
-            pickup_count_last_90_days = st.number_input("Pickups in last 90 days:", min_value=0, value=0)
-            time_since_first_visit = st.number_input("Time Since First Visit (days):", min_value=1, max_value=366, value=30)
-            weekly_visits = st.number_input("Weekly Visits:", min_value=0, value=3)
+        # Initialize FLAN-T5 model
+        generator = pipeline("text2text-generation", model="google/flan-t5-large")
+        
+        return embedder, generator
+    except Exception as e:
+        st.error(f"❌ Failed to load chatbot models: {str(e)}")
+        return None, None
 
-        submitted = st.form_submit_button("Predict Return Probability", type="primary")
+def setup_chatbot_knowledge():
+    """Set up the chatbot knowledge base"""
+    try:
+        # Try to load the dataset
+        data_path = "IFSSA_cleaned_dataset.csv"
+        df = pd.read_csv(data_path) if os.path.exists(data_path) else None
+        
+        # Generate transaction narrative if data exists
+        transaction_narrative = "Here are recent client transactions:\n"
+        if df is not None:
+            for _, row in df.iterrows():
+                transaction_narrative += (
+                    f"Client {row['client_list']} ({row['sex_new']}, Age {row['new_age_years']}) picked up "
+                    f"{row['quantity']} {row['hamper_type']} hamper(s) in {row['pickup_month']} "
+                    f"on {row['pickup_date']}. Household size: {row['household']} with {row['dependents_qty']} dependents.\n"
+                )
+        else:
+            transaction_narrative = "No recent transaction data available."
+        
+        # Define IFSSA knowledge base
+        documents = {
+            "doc1": "IFSSA provides food hampers to families in need, ensuring culturally appropriate meals.",
+            "doc2": transaction_narrative,
+            "doc3": "Donors can contribute via online payments, bank transfers, or in-person donations.",
+            "doc4": "Volunteers assist in packing and distributing hampers every Saturday.",
+            "doc5": "The return prediction model helps identify clients likely to return within 3 months.",
+            "doc6": "Model outputs: 1 = Will Return, 0 = Will Not Return",
+            "doc7": "Key factors in return prediction include pickup frequency and time since first visit."
+        }
+        
+        return documents
+    except Exception as e:
+        st.error(f"Failed to setup chatbot knowledge: {str(e)}")
+        return None
 
-    # Handle form submission
-    if submitted:
-        try:
-            input_data = pd.DataFrame([[ 
-                pickup_week,
-                pickup_count_last_14_days,
-                pickup_count_last_30_days,
-                pickup_count_last_90_days,
-                time_since_first_visit,
-                weekly_visits
-            ]], columns=[
-                'pickup_week',
-                'pickup_count_last_14_days',
-                'pickup_count_last_30_days',
-                'pickup_count_last_90_days',
-                'time_since_first_visit',
-                'weekly_visits'
-            ])
-
-            with st.spinner("Making prediction..."):
-                prediction = model.predict(input_data)
-                probability = model.predict_proba(input_data)[0][1]
-            
-            # Display results
-            st.markdown("---")
-            st.markdown("<h3 style='color: #ff33aa;'>Prediction Result</h3>", unsafe_allow_html=True)
-            
-            col_pred, col_prob, col_expl = st.columns([1,1,2])
-            with col_pred:
-                st.metric("Binary Prediction", 
-                         f"{prediction[0]} - {'Will Return' if prediction[0] == 1 else 'Will Not Return'}",
-                         delta="Positive (1)" if prediction[0] == 1 else "Negative (0)",
-                         delta_color="normal")
-            
-            with col_prob:
-                st.metric("Return Probability", 
-                         f"{probability:.1%}",
-                         delta="Confidence level")
-            
-            with col_expl:
-                st.markdown("""
-                **Interpretation**:
-                - <span style='color: green;'>1 (Will Return)</span>: Probability ≥ 50%
-                - <span style='color: red;'>0 (Will Not Return)</span>: Probability < 50%
-                - Threshold can be adjusted for sensitivity
-                """, unsafe_allow_html=True)
-            
-            # Visual indicator
-            if prediction[0] == 1:
-                st.success("✅ This client is likely to return within 3 months (prediction = 1)")
-            else:
-                st.warning("⚠️ This client is unlikely to return within 3 months (prediction = 0)")
+def chat_with_rahim_page():
+    st.markdown("<h2 style='color: #33aaff;'>Chat with Rahim</h2>", unsafe_allow_html=True)
+    st.markdown("""
+    <div style='background-color: #f0f8ff; padding: 15px; border-radius: 10px; margin-bottom: 20px;'>
+    <b>Welcome to Chat with Rahim!</b><br>
+    This AI assistant can answer questions about IFSSA operations, client data, and the return prediction model.
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Load models and knowledge base
+    embedder, generator = load_chatbot_models()
+    documents = setup_chatbot_knowledge()
+    
+    if embedder is None or generator is None or documents is None:
+        st.error("Chatbot functionality is currently unavailable. Please try again later.")
+        return
+    
+    # Create document embeddings
+    doc_embeddings = {doc_id: embedder.encode(text, convert_to_tensor=True) 
+                     for doc_id, text in documents.items()}
+    
+    def retrieve_context(query, top_k=2):
+        query_embedding = embedder.encode(query, convert_to_tensor=True)
+        scores = {doc_id: util.pytorch_cos_sim(query_embedding, emb).item() 
+                for doc_id, emb in doc_embeddings.items()}
+        sorted_docs = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+        return "\n\n".join(documents[doc_id] for doc_id, _ in sorted_docs[:top_k])
+    
+    def query_llm(query, context):
+        prompt = (
+            "You are Rahim, an assistant for IFSSA. Answer questions about food distribution, "
+            "donations, volunteer work, and client return predictions.\n\n"
+            f"Context:\n{context}\n\n"
+            f"Question: {query}\n\n"
+            "Provide a detailed, helpful response:"
+        )
+        response = generator(prompt, max_length=200, do_sample=True, temperature=0.7)
+        return response[0]['generated_text'].strip()
+    
+    # Initialize chat history
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
+    
+    # Display chat history
+    for message in st.session_state.chat_history:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+    
+    # Chat input
+    user_input = st.chat_input("Ask Rahim about IFSSA...")
+    
+    if user_input:
+        # Add user message to chat history
+        st.session_state.chat_history.append({"role": "user", "content": user_input})
+        
+        with st.chat_message("user"):
+            st.markdown(user_input)
+        
+        # Get response
+        with st.spinner("Rahim is thinking..."):
+            try:
+                context = retrieve_context(user_input)
+                response = query_llm(user_input, context)
                 
-        except Exception as e:
-            st.error(f"Prediction failed: {str(e)}")
+                # Add assistant response to chat history
+                st.session_state.chat_history.append({"role": "assistant", "content": response})
+                
+                with st.chat_message("assistant"):
+                    st.markdown(response)
+                    
+            except Exception as e:
+                error_msg = f"Sorry, I encountered an error: {str(e)}"
+                st.session_state.chat_history.append({"role": "assistant", "content": error_msg})
+                with st.chat_message("assistant"):
+                    st.error(error_msg)
+    
+    # Suggested questions
+    st.markdown("""
+    <div style='margin-top: 20px; padding: 10px; background-color: #f5f5f5; border-radius: 5px;'>
+    <b>Try asking:</b><br>
+    • How does the return prediction model work?<br>
+    • What factors influence client returns?<br>
+    • How can I donate to IFSSA?<br>
+    • Tell me about recent client transactions
+    </div>
+    """, unsafe_allow_html=True)
 
-    # Google Sheets integration
-    st.markdown("---")
-    st.subheader("Data Integration Status")
-    connect_to_google_sheets()
+# ... [Keep all your existing functions unchanged until the main app logic] ...
 
 # --- Main App Logic ---
 display_header()
 
-# Navigation
+# Navigation - Add "Chat with Rahim" to the radio options
 page = st.sidebar.radio(
     "Navigation",
-    ["About", "Exploratory Data Analysis", "XAI Insights", "Make Prediction"],
+    ["About", "Exploratory Data Analysis", "XAI Insights", "Make Prediction", "Chat with Rahim"],
     index=3
 )
 
@@ -364,13 +207,15 @@ elif page == "XAI Insights":
     xai_insights_page()
 elif page == "Make Prediction":
     prediction_page()
+elif page == "Chat with Rahim":
+    chat_with_rahim_page()
 
 # Footer
 st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; padding: 20px;'>
-    <p>IFSSA Client Return Predictor • v1.8</p>
+    <p>IFSSA Client Return Predictor • v1.9</p>
     <p><small>Model outputs: 1 = Return, 0 = No Return | For support contact: support@ifssa.org</small></p>
     </div>
     """,
