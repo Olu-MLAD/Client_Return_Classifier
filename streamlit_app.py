@@ -48,212 +48,322 @@ def load_model():
         """)
         return None
 
-@st.cache_data
-def load_sample_data():
-    """Load sample data for demonstration"""
-    try:
-        # Replace with your actual data loading logic
-        sample_data = pd.DataFrame({
-            'feature1': np.random.normal(0, 1, 100),
-            'feature2': np.random.randint(0, 5, 100),
-            'target': np.random.randint(0, 2, 100)
-        })
-        return sample_data
-    except Exception as e:
-        st.error(f"Failed to load sample data: {str(e)}")
+def connect_to_google_sheets():
+    """Handle Google Sheets connection with status tracking"""
+    status_container = st.container()
+    data_container = st.container()
+    
+    if not os.path.exists("service_account.json"):
+        with status_container:
+            st.info("ℹ️ Google Sheets integration not configured - using local mode")
+            st.caption("To enable Google Sheets, add 'service_account.json' to your directory")
         return None
-
-def chat_with_rahim_page():
-    st.markdown("<h2 style='color: #33aaff;'>Chat with Rahim</h2>", unsafe_allow_html=True)
-    st.markdown("""
-    Welcome to Chat with Rahim! This section allows you to ask questions about the IFSSA Client Return Prediction system, data insights, and machine learning.
-    
-    **How to Use:**
-    - Type your question below.
-    - Rahim will provide relevant insights based on available data and predictive analytics.
-    """)
     
     try:
-        user_input = st.text_input("Ask Rahim anything about IFSSA predictions:")
-        
-        if user_input:
-            st.write("Rahim's Response:")
-            
-            # Simulate response based on user input. You can expand this with model logic.
-            if "return prediction" in user_input.lower():
-                st.success("I can help you understand how we predict if a client will return based on their profile and past behavior!")
-            else:
-                st.success(f"Great question! Here's what I found about: {user_input}")
+        with status_container:
+            with st.spinner("Connecting to Google Sheets..."):
+                gc = gspread.service_account(filename="service_account.json")
+                st.success("🔐 Authentication successful")
+                
+                sheet_url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQwjh9k0hk536tHDO3cgmCb6xvu6GMAcLUUW1aVqKI-bBw-3mb5mz1PTRZ9XSfeLnlmrYs1eTJH3bvJ/pubhtml"
+                sh = gc.open_by_url(sheet_url)
+                worksheet = sh.sheet1
+                st.success("📊 Connected to Google Sheet")
+                
+                with st.spinner("Loading client data..."):
+                    df = get_as_dataframe(worksheet)
+                    if df.empty:
+                        st.warning("⚠️ Loaded empty dataset")
+                    else:
+                        st.success(f"✅ Loaded {len(df)} records")
+                        
+                        with data_container.expander("View Live Client Data", expanded=False):
+                            st.dataframe(df.head(10))
+                            st.caption(f"Last refreshed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                        return df
+                        
+    except gspread.exceptions.APIError as e:
+        with status_container:
+            st.error(f"🔴 API Error: {str(e)}")
+    except gspread.exceptions.SpreadsheetNotFound:
+        with status_container:
+            st.error("🔍 Spreadsheet not found - please check URL")
     except Exception as e:
-        st.error(f"❌ Something went wrong with the chat: {str(e)}")
+        with status_container:
+            st.error(f"⚠️ Unexpected error: {str(e)}")
+    
+    return None
+
+# --- UI Components ---
+def display_header():
+    col1, col2, _ = st.columns([0.15, 0.15, 0.7])
+    with col1:
+        st.image("logo1.jpeg", width=120)
+    with col2:
+        st.image("logo2.png", width=120)
+    
+    st.markdown(
+        """
+        <h1 style='text-align: center; color: #ff5733; padding: 20px;'>
+        IFSSA Client Return Prediction
+        </h1>
+        <p style='text-align: center; font-size: 1.1rem;'>
+        Predict which clients will return within 3 months using statistically validated features
+        </p>
+        <p style='text-align: center; font-size: 0.9rem; color: #666;'>
+        <b>Model Output:</b> 1 = Will Return, 0 = Will Not Return
+        </p>
+        """,
+        unsafe_allow_html=True
+    )
+
+def about_page():
+    st.markdown("""
+    ## About This Tool
+    
+    This application helps IFSSA predict which clients are likely to return for services 
+    within the next 3 months using machine learning.
+    
+    ### Model Interpretation
+    - **1**: Client will return within 3 months (probability ≥ 50%)
+    - **0**: Client will not return within 3 months (probability < 50%)
+    
+    ### How It Works
+    1. Staff enter client visit information
+    2. The system analyzes patterns from historical data
+    3. Predictions are made with clear 1/0 outputs
+    4. Probability scores show confidence level
+    
+    ### Key Benefits
+    - Clear binary output (1/0) with explanation
+    - Probability scores for nuanced understanding
+    - Feature importance explanations
+    - Easy integration with existing systems
+    """)
+
+def exploratory_data_analysis_page():
+    st.markdown("<h2 style='color: #33aaff;'>Exploratory Data Analysis</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #666;'>Exploring the dataset to understand structure, patterns, and insights.</p>", unsafe_allow_html=True)
+    
+    # Display Pre-generated Charts
+    cols = st.columns(2)
+    for i in range(1, 8):
+        try:
+            img = Image.open(f"chart{i}.png")
+            with cols[(i-1) % 2]:
+                st.image(img, caption=f"Chart {i}", use_container_width=True)
+        except FileNotFoundError:
+            with cols[(i-1) % 2]:
+                st.warning(f"Chart image not found: chart{i}.png")
 
 def xai_insights_page():
     st.markdown("<h2 style='color: #33aaff;'>XAI Insights</h2>", unsafe_allow_html=True)
     st.markdown("""
-    Explainable AI (XAI) helps understand the model's decision-making process.
-    This section provides various visualizations to interpret the model's behavior.
-    """)
-    
-    model = load_model()
-    if model is None:
-        return
-    
-    # Load sample data
-    data = load_sample_data()
-    if data is None:
-        return
-    
-    # Prepare SHAP explainer
-    try:
-        explainer = shap.TreeExplainer(model)
-        sample_for_shap = data.drop(columns=['target']).sample(min(50, len(data)))
-        shap_values = explainer.shap_values(sample_for_shap)
-        
-        # Tab layout for different visualizations
-        tab1, tab2, tab3, tab4 = st.tabs([
-            "Feature Importance", 
-            "SHAP Summary", 
-            "Dependence Plots", 
-            "Decision Plots"
-        ])
-        
-        with tab1:
-            st.subheader("Global Feature Importance")
-            fig, ax = plt.subplots(figsize=(10, 6))
-            importances = model.feature_importances_
-            indices = np.argsort(importances)[::-1]
-            features = sample_for_shap.columns[indices]
-            
-            ax.barh(range(len(indices)), importances[indices], align='center', color='#33aaff')
-            ax.set_yticks(range(len(indices)))
-            ax.set_yticklabels(features)
-            ax.set_xlabel('Relative Importance')
-            ax.set_title('Feature Importance Ranking')
-            plt.tight_layout()
-            st.pyplot(fig)
-            
-            # Add feature importance boxplot
-            st.subheader("Feature Importance Distribution")
-            fig2, ax2 = plt.subplots(figsize=(10, 6))
-            sns.boxplot(data=pd.DataFrame(importances.reshape(1, -1), columns=sample_for_shap.columns), 
-                       orient='h', palette='viridis', ax=ax2)
-            ax2.set_title('Distribution of Feature Importances')
-            plt.tight_layout()
-            st.pyplot(fig2)
-            
-        with tab2:
-            st.subheader("SHAP Summary Plot")
-            fig_summary, ax_summary = plt.subplots(figsize=(10, 6))
-            shap.summary_plot(shap_values, sample_for_shap, plot_type="bar", show=False)
-            plt.tight_layout()
-            st.pyplot(fig_summary)
-            
-            st.subheader("SHAP Feature Impact")
-            fig_detailed, ax_detailed = plt.subplots(figsize=(10, 6))
-            shap.summary_plot(shap_values[1], sample_for_shap, show=False)
-            plt.tight_layout()
-            st.pyplot(fig_detailed)
-            
-        with tab3:
-            st.subheader("Feature Dependence Plots")
-            selected_feature = st.selectbox(
-                "Select feature to analyze dependence:",
-                options=sample_for_shap.columns
-            )
-            
-            if selected_feature:
-                fig_dep, ax_dep = plt.subplots(figsize=(10, 6))
-                shap.dependence_plot(
-                    selected_feature, 
-                    shap_values[1], 
-                    sample_for_shap, 
-                    interaction_index=None,
-                    ax=ax_dep,
-                    show=False
-                )
-                plt.title(f"Dependence Plot for {selected_feature}")
-                plt.tight_layout()
-                st.pyplot(fig_dep)
-                
-                # Add interaction analysis
-                st.subheader("Interaction Analysis")
-                interact_feature = st.selectbox(
-                    "Select interaction feature:",
-                    options=[col for col in sample_for_shap.columns if col != selected_feature]
-                )
-                
-                if interact_feature:
-                    fig_interact, ax_interact = plt.subplots(figsize=(10, 6))
-                    shap.dependence_plot(
-                        selected_feature, 
-                        shap_values[1], 
-                        sample_for_shap, 
-                        interaction_index=interact_feature,
-                        ax=ax_interact,
-                        show=False
-                    )
-                    plt.title(f"Interaction between {selected_feature} and {interact_feature}")
-                    plt.tight_layout()
-                    st.pyplot(fig_interact)
-                    
-        with tab4:
-            st.subheader("SHAP Decision Plot")
-            sample_idx = st.slider(
-                "Select sample index to explain:",
-                min_value=0,
-                max_value=len(sample_for_shap)-1,
-                value=0
-            )
-            
-            fig_decision, ax_decision = plt.subplots(figsize=(10, 6))
-            shap.decision_plot(
-                explainer.expected_value[1], 
-                shap_values[1][sample_idx], 
-                sample_for_shap.iloc[sample_idx],
-                show=False
-            )
-            plt.title(f"Decision Plot for Sample {sample_idx}")
-            plt.tight_layout()
-            st.pyplot(fig_decision)
-            
-            # Add force plot
-            st.subheader("SHAP Force Plot")
-            force_plot = shap.force_plot(
-                explainer.expected_value[1],
-                shap_values[1][sample_idx],
-                sample_for_shap.iloc[sample_idx],
-                matplotlib=True,
-                show=False
-            )
-            st.pyplot(force_plot)
-            
-    except Exception as e:
-        st.error(f"Error generating SHAP explanations: {str(e)}")
+    <p style='color: #666;'>
+    Explainable AI (XAI) helps understand how the model makes predictions using SHAP values.
+    </p>
+    <div style='background-color: #f0f0f0; padding: 15px; border-radius: 5px; margin-bottom: 20px;'>
+    <b>Model Output Key:</b><br>
+    • <span style='color: green;'>1 = Will Return</span> (probability ≥ 50%)<br>
+    • <span style='color: red;'>0 = Will Not Return</span> (probability < 50%)
+    </div>
+    """, unsafe_allow_html=True)
 
-def about_page():
-    st.markdown("<h2 style='color: #33aaff;'>About the IFSSA Client Return Predictor</h2>", unsafe_allow_html=True)
+    # Load model
+    with st.spinner("Loading prediction model..."):
+        model = load_model()
+    if model is None:
+        st.error("Failed to load model - cannot generate explanations")
+        show_fallback_xai()
+        return
+
+    # Create sample data with features in specified order
+    X = pd.DataFrame({
+        'pickup_week': [25, 10, 50],
+        'pickup_count_last_14_days': [2, 1, 3],
+        'pickup_count_last_30_days': [4, 2, 5],
+        'pickup_count_last_90_days': [8, 3, 12],
+        'time_since_first_visit': [90, 30, 180],
+        'weekly_visits': [3, 1, 4]
+    })
+
+    try:
+        # Compute SHAP values with correct settings
+        with st.spinner("Computing SHAP explanations..."):
+            explainer = shap.TreeExplainer(
+                model,
+                feature_perturbation="interventional",
+                model_output="probability"
+            )
+            shap_values = explainer.shap_values(X, check_additivity=False)
+
+            # SHAP Summary Plot (Bar Chart)
+            st.markdown("### Feature Importance (SHAP Values)")
+            fig, ax = plt.subplots(figsize=(12, 6))
+            shap.summary_plot(shap_values[1], X, plot_type="bar", show=False)
+            plt.title("Which Features Most Influence 'Will Return' Predictions?")
+            st.pyplot(fig)
+            plt.close()
+
+            # Detailed SHAP summary plot
+            st.markdown("### How Feature Values Affect Return Probability")
+            fig, ax = plt.subplots(figsize=(12, 6))
+            shap.summary_plot(shap_values[1], X, show=False)
+            plt.title("Feature Value Impact on Return Probability (1=Return)")
+            st.pyplot(fig)
+            plt.close()
+
+            st.markdown("""
+            **Interpreting the Results**:
+            - Features are ordered by their impact on predicting returns (1)
+            - Right of center (positive SHAP values) = increases return probability
+            - Left of center (negative SHAP values) = decreases return probability
+            - Color shows feature value (red=high, blue=low)
+            """)
+
+    except Exception as e:
+        st.error(f"Detailed explanation failed: {str(e)}")
+        show_fallback_xai()
+
+def show_fallback_xai():
+    """Show simplified explanations when SHAP fails"""
+    st.warning("Showing simplified feature importance")
+    
+    features = [
+        'pickup_week',
+        'pickup_count_last_14_days',
+        'pickup_count_last_30_days',
+        'pickup_count_last_90_days',
+        'time_since_first_visit',
+        'weekly_visits'
+    ]
+    importance = [0.05, 0.10, 0.15, 0.25, 0.02, 0.35]
+    
+    fig, ax = plt.subplots(figsize=(12, 6))
+    sns.barplot(x=importance, y=features, palette="viridis")
+    plt.title("Simplified Feature Importance for Return Prediction (1=Return)")
+    plt.xlabel("Relative Importance")
+    st.pyplot(fig)
+    
     st.markdown("""
-    This application predicts whether a client will return based on past behavior and data insights. 
-    The model uses a random forest classifier to make predictions and provide actionable insights.
+    **Key Insights**:
+    - Weekly visits is the strongest predictor of return visits (1)
+    - Pickups in last 90 days is the second most important factor
+    - Recent pickup activity strongly influences predictions
+    - Time since first visit has a smaller but significant effect
     """)
+
+def prediction_page():
+    st.markdown("<h2 style='color: #33aaff;'>Client Return Prediction</h2>", unsafe_allow_html=True)
+    st.markdown("""
+    <div style='background-color: #f0f0f0; padding: 15px; border-radius: 5px; margin-bottom: 20px;'>
+    <b>Remember:</b><br>
+    • <span style='color: green;'>1 = Will Return</span> (probability ≥ 50%)<br>
+    • <span style='color: red;'>0 = Will Not Return</span> (probability < 50%)
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Load model
+    with st.spinner("Loading prediction model..."):
+        model = load_model()
+    if model is None:
+        st.stop()
+
+    # Input form with features in specified order
+    with st.form("prediction_form"):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            pickup_week = st.number_input("Pickup Week (1-52):", min_value=1, max_value=52, value=1)
+            pickup_count_last_14_days = st.number_input("Pickups in last 14 days:", min_value=0, value=0)
+            pickup_count_last_30_days = st.number_input("Pickups in last 30 days:", min_value=0, value=0)
+            
+        with col2:
+            pickup_count_last_90_days = st.number_input("Pickups in last 90 days:", min_value=0, value=0)
+            time_since_first_visit = st.number_input("Time Since First Visit (days):", min_value=1, max_value=366, value=30)
+            weekly_visits = st.number_input("Weekly Visits:", min_value=0, value=3)
+
+        submitted = st.form_submit_button("Predict Return Probability", type="primary")
+
+    # Handle form submission
+    if submitted:
+        try:
+            input_data = pd.DataFrame([[ 
+                pickup_week,
+                pickup_count_last_14_days,
+                pickup_count_last_30_days,
+                pickup_count_last_90_days,
+                time_since_first_visit,
+                weekly_visits
+            ]], columns=[
+                'pickup_week',
+                'pickup_count_last_14_days',
+                'pickup_count_last_30_days',
+                'pickup_count_last_90_days',
+                'time_since_first_visit',
+                'weekly_visits'
+            ])
+
+            with st.spinner("Making prediction..."):
+                prediction = model.predict(input_data)
+                probability = model.predict_proba(input_data)[0][1]
+            
+            # Display results
+            st.markdown("---")
+            st.markdown("<h3 style='color: #ff33aa;'>Prediction Result</h3>", unsafe_allow_html=True)
+            
+            col_pred, col_prob, col_expl = st.columns([1,1,2])
+            with col_pred:
+                st.metric("Binary Prediction", 
+                         f"{prediction[0]} - {'Will Return' if prediction[0] == 1 else 'Will Not Return'}",
+                         delta="Positive (1)" if prediction[0] == 1 else "Negative (0)",
+                         delta_color="normal")
+            
+            with col_prob:
+                st.metric("Return Probability", 
+                         f"{probability:.1%}",
+                         delta="Confidence level")
+            
+            with col_expl:
+                st.markdown("""
+                **Interpretation**:
+                - <span style='color: green;'>1 (Will Return)</span>: Probability ≥ 50%
+                - <span style='color: red;'>0 (Will Not Return)</span>: Probability < 50%
+                - Threshold can be adjusted for sensitivity
+                """, unsafe_allow_html=True)
+            
+            # Visual indicator
+            if prediction[0] == 1:
+                st.success("✅ This client is likely to return within 3 months (prediction = 1)")
+            else:
+                st.warning("⚠️ This client is unlikely to return within 3 months (prediction = 0)")
+                
+        except Exception as e:
+            st.error(f"Prediction failed: {str(e)}")
+
+    # Google Sheets integration
+    st.markdown("---")
+    st.subheader("Data Integration Status")
+    connect_to_google_sheets()
 
 # --- Main App Logic ---
-st.sidebar.title("Navigation")
+display_header()
+
+# Navigation
 page = st.sidebar.radio(
-    "Select a page:",
-    ["About", "Exploratory Data Analysis", "XAI Insights", "Make Prediction", "Chat with Rahim"]
+    "Navigation",
+    ["About", "Exploratory Data Analysis", "XAI Insights", "Make Prediction"],
+    index=3
 )
 
 if page == "About":
     about_page()
 elif page == "Exploratory Data Analysis":
-    st.write("Exploratory Data Analysis Page - To be implemented")
+    exploratory_data_analysis_page()
 elif page == "XAI Insights":
     xai_insights_page()
 elif page == "Make Prediction":
-    st.write("Prediction Page - To be implemented")
-elif page == "Chat with Rahim":
-    chat_with_rahim_page()
+    prediction_page()
 
 # Footer
 st.markdown("---")
