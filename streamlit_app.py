@@ -12,8 +12,6 @@ from datetime import datetime
 from PIL import Image
 import shap
 from io import BytesIO
-from sentence_transformers import SentenceTransformer, util
-from transformers import pipeline
 
 # Set page configuration
 st.set_page_config(
@@ -29,7 +27,7 @@ def simple_model_loader():
         if not is_classifier(model):
             st.error("Loaded model is not a classifier")
             return None
-        if not (hasattr(model, 'predict') and hasattr(model, 'predict_proba')):
+        if not (hasattr(model, 'predict') and hasattr(model, 'predict_proba'):
             st.error("Model missing required methods")
             return None
         return model
@@ -41,9 +39,19 @@ def simple_model_loader():
 def load_model():
     return simple_model_loader()
 
+# Delayed import of sentence-transformers to avoid circular import
+def get_sentence_transformer():
+    from sentence_transformers import SentenceTransformer
+    return SentenceTransformer
+
+def get_transformers_pipeline():
+    from transformers import pipeline
+    return pipeline
+
 @st.cache_resource
 def load_embedder():
     try:
+        SentenceTransformer = get_sentence_transformer()
         return SentenceTransformer('all-MiniLM-L6-v2')
     except Exception as e:
         st.error(f"Embedder loading failed: {e}")
@@ -52,9 +60,10 @@ def load_embedder():
 @st.cache_resource
 def load_generator():
     try:
+        pipeline = get_transformers_pipeline()
         return pipeline(
             "text2text-generation", 
-            model="google/flan-t5-base",  # Using smaller model
+            model="google/flan-t5-base",
             device="cpu"
         )
     except Exception as e:
@@ -68,7 +77,7 @@ def setup_chatbot_knowledge():
         
         transaction_narrative = "Recent client transactions:\n"
         if df is not None:
-            for _, row in df.head(5).iterrows():  # Limit to 5 rows for demo
+            for _, row in df.head(5).iterrows():
                 transaction_narrative += (
                     f"Client {row.get('client_list', 'N/A')} "
                     f"({row.get('sex_new', 'N/A')}, Age {row.get('new_age_years', 'N/A')}) "
@@ -125,6 +134,9 @@ def chat_with_rahim_page():
         
         with st.spinner("Thinking..."):
             try:
+                # Import util only when needed
+                from sentence_transformers import util
+                
                 # Simplified retrieval
                 query_embedding = embedder.encode(user_input, convert_to_tensor=True)
                 scores = {
@@ -170,11 +182,15 @@ def connect_to_google_sheets():
         return None
 
 def display_header():
-    st.markdown("""
-    <h1 style='text-align: center; color: #ff5733;'>
-    IFSSA Client Return Prediction
-    </h1>
-    """, unsafe_allow_html=True)
+    col1, col2 = st.columns([1, 4])
+    with col1:
+        st.image("logo.png", width=100)
+    with col2:
+        st.markdown("""
+        <h1 style='color: #ff5733;'>
+        IFSSA Client Return Prediction
+        </h1>
+        """, unsafe_allow_html=True)
 
 def about_page():
     st.markdown("""
@@ -183,6 +199,7 @@ def about_page():
     - **1**: Will Return
     - **0**: Will Not Return
     """)
+    st.image("workflow.png", use_column_width=True)
 
 def exploratory_data_analysis_page():
     st.markdown("<h2>Exploratory Data Analysis</h2>", unsafe_allow_html=True)
@@ -255,6 +272,7 @@ elif page == "Chat with Rahim":
 st.markdown("---")
 st.markdown("""
 <div style='text-align: center;'>
-<p>IFSSA Client Return Predictor • v2.0</p>
+<p>IFSSA Client Return Predictor • v2.1</p>
+<p><small>For support contact: support@ifssa.org</small></p>
 </div>
 """, unsafe_allow_html=True)
