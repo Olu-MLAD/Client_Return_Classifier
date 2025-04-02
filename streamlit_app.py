@@ -19,7 +19,22 @@ st.set_page_config(
     page_title="IFSSA Return Predictor"
 )
 
-# --- Helper Functions ---
+# ========== FUNCTION DEFINITIONS ==========
+
+def display_header():
+    col1, col2 = st.columns([1, 4])
+    with col1:
+        st.image("logo.png", width=100)
+    with col2:
+        st.markdown("""
+        <h1 style='color: #ff5733;'>
+        IFSSA Client Return Prediction
+        </h1>
+        <p style='color: #666;'>
+        Predict which clients will return within 3 months
+        </p>
+        """, unsafe_allow_html=True)
+
 @st.cache_resource
 def load_model():
     """Load and validate the machine learning model"""
@@ -48,7 +63,7 @@ def load_model():
         """)
         return None
 
-# Lazy loading implementation for NLP models
+# Lazy loading for NLP components
 def get_sentence_transformer():
     from sentence_transformers import SentenceTransformer
     return SentenceTransformer
@@ -82,14 +97,12 @@ def load_generator():
 def setup_chatbot_knowledge():
     """Set up the chatbot knowledge base"""
     try:
-        # Try to load the dataset
         data_path = "IFSSA_cleaned_dataset.csv"
         df = pd.read_csv(data_path) if os.path.exists(data_path) else None
         
-        # Generate transaction narrative if data exists
         transaction_narrative = "Recent client transactions:\n"
         if df is not None:
-            for _, row in df.head(5).iterrows():  # Limit to 5 rows for demo
+            for _, row in df.head(5).iterrows():
                 transaction_narrative += (
                     f"Client {row.get('client_list', 'N/A')} "
                     f"({row.get('sex_new', 'N/A')}, Age {row.get('new_age_years', 'N/A')}) "
@@ -99,7 +112,6 @@ def setup_chatbot_knowledge():
         else:
             transaction_narrative = "No transaction data available"
         
-        # Define IFSSA knowledge base
         documents = {
             "doc1": "IFSSA provides food hampers to families in need.",
             "doc2": transaction_narrative,
@@ -114,12 +126,6 @@ def setup_chatbot_knowledge():
 
 def chat_with_rahim_page():
     st.markdown("<h2 style='color: #33aaff;'>Chat with Rahim</h2>", unsafe_allow_html=True)
-    st.markdown("""
-    <div style='background-color: #f0f8ff; padding: 15px; border-radius: 10px; margin-bottom: 20px;'>
-    <b>Welcome to Chat with Rahim!</b><br>
-    Ask about IFSSA operations, client data, or the prediction model.
-    </div>
-    """, unsafe_allow_html=True)
     
     embedder = load_embedder()
     generator = load_generator()
@@ -129,16 +135,13 @@ def chat_with_rahim_page():
         st.error("Chatbot components not available")
         return
     
-    # Initialize chat history
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
     
-    # Display chat history
     for message in st.session_state.chat_history:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
     
-    # Chat input
     if user_input := st.chat_input("Ask Rahim about IFSSA..."):
         st.session_state.chat_history.append({"role": "user", "content": user_input})
         
@@ -147,10 +150,7 @@ def chat_with_rahim_page():
         
         with st.spinner("Thinking..."):
             try:
-                # Import util only when needed
                 from sentence_transformers import util
-                
-                # Simplified retrieval
                 query_embedding = embedder.encode(user_input, convert_to_tensor=True)
                 scores = {
                     doc_id: util.pytorch_cos_sim(query_embedding, 
@@ -159,7 +159,6 @@ def chat_with_rahim_page():
                 }
                 context = documents[max(scores, key=scores.get)]
                 
-                # Generate response
                 response = generator(
                     f"Answer this IFSSA question: {user_input}\nContext: {context}",
                     max_length=150
@@ -180,14 +179,77 @@ def chat_with_rahim_page():
                 with st.chat_message("assistant"):
                     st.error(error_msg)
 
-# [Rest of your existing code remains unchanged...]
-# ... including connect_to_google_sheets(), display_header(), about_page(), 
-# ... exploratory_data_analysis_page(), xai_insights_page(), prediction_page()
-# ... and the main app logic with page navigation
+def about_page():
+    st.markdown("""
+    ## About This Tool
+    Predicts which clients will return within 3 months.
+    - **1**: Will Return
+    - **0**: Will Not Return
+    """)
 
-# --- Main App Logic ---
+def exploratory_data_analysis_page():
+    st.markdown("<h2>Exploratory Data Analysis</h2>", unsafe_allow_html=True)
+    st.write("Data analysis features coming soon")
+
+def xai_insights_page():
+    st.markdown("<h2>XAI Insights</h2>", unsafe_allow_html=True)
+    model = load_model()
+    if model:
+        try:
+            X = pd.DataFrame(np.random.rand(10, 6), columns=[
+                'pickup_week', 'pickup_count_last_14_days', 
+                'pickup_count_last_30_days', 'pickup_count_last_90_days',
+                'time_since_first_visit', 'weekly_visits'
+            ])
+            
+            explainer = shap.TreeExplainer(model)
+            shap_values = explainer.shap_values(X)
+            
+            st.subheader("Feature Importance")
+            fig1, ax1 = plt.subplots(figsize=(10, 6))
+            shap.summary_plot(shap_values[1], X, plot_type="bar", show=False)
+            st.pyplot(fig1)
+            
+            st.subheader("Feature Impact")
+            fig2, ax2 = plt.subplots(figsize=(10, 6))
+            shap.summary_plot(shap_values[1], X, show=False)
+            st.pyplot(fig2)
+            
+        except Exception as e:
+            st.error(f"Error generating explanations: {str(e)}")
+
+def prediction_page():
+    st.markdown("<h2>Client Return Prediction</h2>", unsafe_allow_html=True)
+    model = load_model()
+    if model is None:
+        st.stop()
+
+    with st.form("prediction_form"):
+        col1, col2 = st.columns(2)
+        with col1:
+            pickup_week = st.number_input("Pickup Week", 1, 52, 1)
+            pickup_14 = st.number_input("Pickups (14 days)", 0, 20, 0)
+            pickup_30 = st.number_input("Pickups (30 days)", 0, 20, 0)
+        with col2:
+            pickup_90 = st.number_input("Pickups (90 days)", 0, 50, 0)
+            time_since = st.number_input("Days since first visit", 1, 365, 30)
+            weekly = st.number_input("Weekly visits", 0, 10, 1)
+        
+        if st.form_submit_button("Predict"):
+            input_data = [[pickup_week, pickup_14, pickup_30, pickup_90, time_since, weekly]]
+            prediction = model.predict(input_data)[0]
+            proba = model.predict_proba(input_data)[0][1]
+            
+            st.metric("Prediction", 
+                     f"{prediction} - {'Return' if prediction == 1 else 'No Return'}",
+                     f"{proba:.1%} confidence")
+
+# ========== MAIN APP LOGIC ==========
+
+# First display the header
 display_header()
 
+# Then set up page navigation
 page = st.sidebar.radio(
     "Navigation",
     ["About", "Exploratory Data Analysis", "XAI Insights", "Make Prediction", "Chat with Rahim"]
@@ -208,7 +270,7 @@ elif page == "Chat with Rahim":
 st.markdown("---")
 st.markdown("""
 <div style='text-align: center;'>
-<p>IFSSA Client Return Predictor • v2.1</p>
+<p>IFSSA Client Return Predictor • v2.2</p>
 <p><small>For support contact: support@ifssa.org</small></p>
 </div>
 """, unsafe_allow_html=True)
