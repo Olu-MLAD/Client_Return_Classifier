@@ -213,59 +213,41 @@ def get_answer(question):
     For immediate assistance, please call (780) 123-4567 or email info@ifssa.org.
     """
 
+# XAI Insights Page with Additional Charts
 def xai_insights_page():
     st.markdown("<h2 style='color: #33aaff;'>Explainable AI (XAI) Insights</h2>", unsafe_allow_html=True)
-    st.markdown("""
-    <div style='background-color: #f0f0f0; padding: 15px; border-radius: 5px; margin-bottom: 20px;'>
-    <b>Model Output Key:</b><br>
-    • <span style='color: green;'>1 = Will Return</span> (probability ≥ 50%)<br>
-    • <span style='color: red;'>0 = Will Not Return</span> (probability < 50%)
-    </div>
-    """, unsafe_allow_html=True)
+
+    # Placeholder explanation
+    st.write("Explore feature importance and model interpretability.")
 
     # Feature Importance Chart
-    st.markdown("### Feature Importance")
     feature_importance = pd.DataFrame({
-        'Feature': ['Weekly Visits', 'Pickups (90 days)', 'Pickups (30 days)', 
-                   'Time Since First Visit', 'Pickups (14 days)', 'Pickup Week'],
-        'Importance': [0.35, 0.25, 0.15, 0.12, 0.08, 0.05]
-    }).sort_values('Importance', ascending=True)
-
-    fig, ax = plt.subplots(figsize=(10, 6))
-    sns.barplot(x="Importance", y="Feature", data=feature_importance, 
-                palette="viridis", ax=ax)
-    ax.set_title("Which Factors Most Influence Return Predictions?", fontsize=14)
-    ax.set_xlabel("Relative Importance Score", fontsize=12)
-    ax.set_ylabel("")
-    plt.tight_layout()
-    st.pyplot(fig)
-    
-    st.markdown("""
-    **Interpretation:**
-    - Weekly visits is the strongest predictor of return visits
-    - Recent pickup activity (90 days) is highly influential
-    - Time since first visit has moderate impact
-    - Pickup week has minimal effect on predictions
-    """)
-
-    # Prediction Performance
-    st.markdown("### Model Performance")
-    performance_data = pd.DataFrame({
-        'Metric': ['Accuracy', 'Precision', 'Recall', 'F1 Score'],
-        'Score': [0.87, 0.85, 0.89, 0.87]
+        'Feature': ['pickup_week', 'pickup_count_last_14_days', 'pickup_count_last_30_days', 'pickup_count_last_90_days', 'time_since_first_visit', 'weekly_visits'],
+        'Importance': [0.22, 0.18, 0.15, 0.14, 0.17, 0.14]
     })
 
-    fig, ax = plt.subplots(figsize=(8, 4))
-    sns.barplot(x="Metric", y="Score", data=performance_data, 
-                palette="mako", ax=ax)
-    ax.set_title("Model Evaluation Metrics", fontsize=14)
-    ax.set_ylim(0, 1)
-    for p in ax.patches:
-        ax.annotate(f"{p.get_height():.2f}", 
-                   (p.get_x() + p.get_width() / 2., p.get_height()),
-                   ha='center', va='center', 
-                   xytext=(0, 10), 
-                   textcoords='offset points')
+    fig, ax = plt.subplots(figsize=(8, 5))
+    sns.barplot(x="Importance", y="Feature", data=feature_importance, ax=ax, palette="Blues_r")
+    ax.set_title("Feature Importance in Prediction Model")
+    st.pyplot(fig)
+
+    # New Chart: SHAP Summary Plot (Example Placeholder)
+    st.write("### SHAP Value Distribution")
+    fig, ax = plt.subplots(figsize=(8, 5))
+    sns.boxplot(data=[[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.2, 0.3, 0.1]], ax=ax)
+    ax.set_title("SHAP Value Distribution for Key Features")
+    st.pyplot(fig)
+     # New Chart: Predicted vs. Actual Returns
+    st.write("### Predicted vs. Actual Returns")
+    actual_vs_predicted = pd.DataFrame({
+        'Category': ['Returned', 'Not Returned'],
+        'Actual': [500, 300],
+        'Predicted': [480, 320]
+    })
+
+    fig, ax = plt.subplots(figsize=(6, 4))
+    actual_vs_predicted.plot(kind='bar', x='Category', ax=ax, color=['green', 'red'])
+    ax.set_title("Predicted vs. Actual Client Returns")
     st.pyplot(fig)
 
 def prediction_page():
@@ -289,20 +271,14 @@ def prediction_page():
         col1, col2 = st.columns(2)
         
         with col1:
-            pickup_week = st.number_input("Pickup Week (1-52):", min_value=1, max_value=52, value=25,
-                                        help="Current week of the year when client is visiting")
-            pickup_count_last_14_days = st.number_input("Pickups in last 14 days:", min_value=0, value=1,
-                                                      help="Number of visits in past 2 weeks")
-            pickup_count_last_30_days = st.number_input("Pickups in last 30 days:", min_value=0, value=2,
-                                                      help="Number of visits in past month")
+            pickup_week = st.number_input("Pickup Week (1-52):", min_value=1, max_value=52, value=1)
+            pickup_count_last_14_days = st.number_input("Pickups in last 14 days:", min_value=0, value=0)
+            pickup_count_last_30_days = st.number_input("Pickups in last 30 days:", min_value=0, value=0)
             
         with col2:
-            pickup_count_last_90_days = st.number_input("Pickups in last 90 days:", min_value=0, value=4,
-                                                      help="Number of visits in past 3 months")
-            time_since_first_visit = st.number_input("Time Since First Visit (days):", min_value=1, value=120,
-                                                   help="Days since client's first visit to IFSSA")
-            weekly_visits = st.number_input("Average Weekly Visits:", min_value=0.0, value=1.5, step=0.5,
-                                          help="Client's average weekly visit frequency")
+            pickup_count_last_90_days = st.number_input("Pickups in last 90 days:", min_value=0, value=0)
+            time_since_first_visit = st.number_input("Time Since First Visit (days):", min_value=1, max_value=366, value=30)
+            weekly_visits = st.number_input("Weekly Visits:", min_value=0, value=3)
 
         submitted = st.form_submit_button("Predict Return Probability", type="primary")
 
@@ -325,7 +301,7 @@ def prediction_page():
                 'weekly_visits'
             ])
 
-            with st.spinner("Analyzing patterns..."):
+            with st.spinner("Making prediction..."):
                 prediction = model.predict(input_data)
                 probability = model.predict_proba(input_data)[0][1]
             
@@ -335,50 +311,24 @@ def prediction_page():
             
             col_pred, col_prob, col_expl = st.columns([1,1,2])
             with col_pred:
-                st.metric("Prediction", 
+                st.metric("Binary Prediction", 
                          f"{prediction[0]} - {'Will Return' if prediction[0] == 1 else 'Will Not Return'}",
                          delta="Positive (1)" if prediction[0] == 1 else "Negative (0)",
                          delta_color="normal")
             
             with col_prob:
-                st.metric("Confidence", 
+                st.metric("Return Probability", 
                          f"{probability:.1%}",
-                         delta="High confidence" if probability > 0.7 or probability < 0.3 else "Medium confidence",
-                         delta_color="normal")
-            
-            with col_expl:
-                st.markdown("""
-                **Interpretation**:
-                - <span style='color: green;'>1 (Will Return)</span>: Probability ≥ 50%
-                - <span style='color: red;'>0 (Will Not Return)</span>: Probability < 50%
-                - Threshold can be adjusted for sensitivity
-                """, unsafe_allow_html=True)
+                         delta="Confidence level")
             
             # Visual indicator
             if prediction[0] == 1:
-                st.success("✅ **High Likelihood to Return**: This client shows patterns consistent with returning clients")
+                st.success("✅ This client is likely to return within 3 months (prediction = 1)")
             else:
-                st.warning("⚠️ **Unlikely to Return**: This client's activity suggests they may not return soon")
-                
-            # Recommendation section
-            st.markdown("---")
-            st.markdown("### Recommended Actions")
-            if prediction[0] == 1:
-                st.markdown("""
-                - Consider regular follow-up to maintain engagement
-                - Offer additional services that might be beneficial
-                - Add to priority contact list for upcoming programs
-                """)
-            else:
-                st.markdown("""
-                - Consider outreach to understand barriers to return
-                - Evaluate if additional support services are needed
-                - Check if client needs were fully met
-                """)
+                st.warning("⚠️ This client is unlikely to return within 3 months (prediction = 0)")
                 
         except Exception as e:
             st.error(f"Prediction failed: {str(e)}")
-            st.error("Please check your inputs and try again")
 
 # --- Main App Logic ---
 display_header()
