@@ -1,17 +1,9 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import joblib
 import os
-import matplotlib.pyplot as plt
-import seaborn as sns
-import gspread
-from gspread_dataframe import get_as_dataframe
 from sklearn.base import is_classifier
 from datetime import datetime
-from PIL import Image
-import shap
-from io import BytesIO
 
 # Set page configuration
 st.set_page_config(
@@ -40,59 +32,7 @@ def load_model():
         
     except Exception as e:
         st.error(f"❌ Model loading failed: {str(e)}")
-        st.error("""
-        Please ensure:
-        1. 'RF_model_streamlit.pkl' exists in the same directory
-        2. The file is a valid scikit-learn model
-        3. You have matching Python/scikit-learn versions
-        """)
         return None
-
-def connect_to_google_sheets():
-    """Handle Google Sheets connection with status tracking"""
-    status_container = st.container()
-    data_container = st.container()
-    
-    if not os.path.exists("service_account.json"):
-        with status_container:
-            st.info("ℹ️ Google Sheets integration not configured - using local mode")
-            st.caption("To enable Google Sheets, add 'service_account.json' to your directory")
-        return None
-    
-    try:
-        with status_container:
-            with st.spinner("Connecting to Google Sheets..."):
-                gc = gspread.service_account(filename="service_account.json")
-                st.success("🔐 Authentication successful")
-                
-                sheet_url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQwjh9k0hk536tHDO3cgmCb6xvu6GMAcLUUW1aVqKI-bBw-3mb5mz1PTRZ9XSfeLnlmrYs1eTJH3bvJ/pubhtml"
-                sh = gc.open_by_url(sheet_url)
-                worksheet = sh.sheet1
-                st.success("📊 Connected to Google Sheet")
-                
-                with st.spinner("Loading client data..."):
-                    df = get_as_dataframe(worksheet)
-                    if df.empty:
-                        st.warning("⚠️ Loaded empty dataset")
-                    else:
-                        st.success(f"✅ Loaded {len(df)} records")
-                        
-                        with data_container.expander("View Live Client Data", expanded=False):
-                            st.dataframe(df.head(10))
-                            st.caption(f"Last refreshed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-                        return df
-                        
-    except gspread.exceptions.APIError as e:
-        with status_container:
-            st.error(f"🔴 API Error: {str(e)}")
-    except gspread.exceptions.SpreadsheetNotFound:
-        with status_container:
-            st.error("🔍 Spreadsheet not found - please check URL")
-    except Exception as e:
-        with status_container:
-            st.error(f"⚠️ Unexpected error: {str(e)}")
-    
-    return None
 
 # --- UI Components ---
 def display_header():
@@ -116,142 +56,6 @@ def display_header():
         """,
         unsafe_allow_html=True
     )
-
-def about_page():
-    st.markdown("""
-    ## About This Tool
-    
-    This application helps IFSSA predict which clients are likely to return for services 
-    within the next 3 months using machine learning.
-    
-    ### Model Interpretation
-    - **1**: Client will return within 3 months (probability ≥ 50%)
-    - **0**: Client will not return within 3 months (probability < 50%)
-    
-    ### How It Works
-    1. Staff enter client visit information
-    2. The system analyzes patterns from historical data
-    3. Predictions are made with clear 1/0 outputs
-    4. Probability scores show confidence level
-    
-    ### Key Benefits
-    - Clear binary output (1/0) with explanation
-    - Probability scores for nuanced understanding
-    - Feature importance explanations
-    - Easy integration with existing systems
-    """)
-
-def exploratory_data_analysis_page():
-    st.markdown("<h2 style='color: #33aaff;'>Exploratory Data Analysis</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #666;'>Exploring the dataset to understand structure, patterns, and insights.</p>", unsafe_allow_html=True)
-    
-    # Display Pre-generated Charts
-    cols = st.columns(2)
-    for i in range(1, 8):
-        try:
-            img = Image.open(f"chart{i}.png")
-            with cols[(i-1) % 2]:
-                st.image(img, caption=f"Chart {i}", use_container_width=True)
-        except FileNotFoundError:
-            with cols[(i-1) % 2]:
-                st.warning(f"Chart image not found: chart{i}.png")
-
-def xai_insights_page():
-    st.markdown("<h2 style='color: #33aaff;'>XAI Insights</h2>", unsafe_allow_html=True)
-    st.markdown("""
-    <p style='color: #666;'>
-    Explainable AI (XAI) helps understand how the model makes predictions using SHAP values.
-    </p>
-    <div style='background-color: #f0f0f0; padding: 15px; border-radius: 5px; margin-bottom: 20px;'>
-    <b>Model Output Key:</b><br>
-    • <span style='color: green;'>1 = Will Return</span> (probability ≥ 50%)<br>
-    • <span style='color: red;'>0 = Will Not Return</span> (probability < 50%)
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Load model
-    with st.spinner("Loading prediction model..."):
-        model = load_model()
-    if model is None:
-        st.error("Failed to load model - cannot generate explanations")
-        show_fallback_xai()
-        return
-
-    # Create sample data with features in specified order
-    X = pd.DataFrame({
-        'pickup_week': [25, 10, 50],
-        'pickup_count_last_14_days': [2, 1, 3],
-        'pickup_count_last_30_days': [4, 2, 5],
-        'pickup_count_last_90_days': [8, 3, 12],
-        'time_since_first_visit': [90, 30, 180],
-        'weekly_visits': [3, 1, 4]
-    })
-
-    try:
-        # Compute SHAP values with correct settings
-        with st.spinner("Computing SHAP explanations..."):
-            explainer = shap.TreeExplainer(
-                model,
-                feature_perturbation="interventional",
-                model_output="probability"
-            )
-            shap_values = explainer.shap_values(X, check_additivity=False)
-
-            # SHAP Summary Plot (Bar Chart)
-            st.markdown("### Feature Importance (SHAP Values)")
-            fig, ax = plt.subplots(figsize=(12, 6))
-            shap.summary_plot(shap_values[1], X, plot_type="bar", show=False)
-            plt.title("Which Features Most Influence 'Will Return' Predictions?")
-            st.pyplot(fig)
-            plt.close()
-
-            # Detailed SHAP summary plot
-            st.markdown("### How Feature Values Affect Return Probability")
-            fig, ax = plt.subplots(figsize=(12, 6))
-            shap.summary_plot(shap_values[1], X, show=False)
-            plt.title("Feature Value Impact on Return Probability (1=Return)")
-            st.pyplot(fig)
-            plt.close()
-
-            st.markdown("""
-            **Interpreting the Results**:
-            - Features are ordered by their impact on predicting returns (1)
-            - Right of center (positive SHAP values) = increases return probability
-            - Left of center (negative SHAP values) = decreases return probability
-            - Color shows feature value (red=high, blue=low)
-            """)
-
-    except Exception as e:
-        st.error(f"Detailed explanation failed: {str(e)}")
-        show_fallback_xai()
-
-def show_fallback_xai():
-    """Show simplified explanations when SHAP fails"""
-    st.warning("Showing simplified feature importance")
-    
-    features = [
-        'pickup_week',
-        'pickup_count_last_14_days',
-        'pickup_count_last_30_days',
-        'pickup_count_last_90_days',
-        'time_since_first_visit',
-        'weekly_visits'
-    ]
-    importance = [0.05, 0.10, 0.15, 0.25, 0.02, 0.35]
-    
-    fig, ax = plt.subplots(figsize=(12, 6))
-    sns.barplot(x=importance, y=features, palette="viridis")
-    plt.title("Simplified Feature Importance for Return Prediction (1=Return)")
-    plt.xlabel("Relative Importance")
-    st.pyplot(fig)
-    
-    st.markdown("""
-    **Key Insights**:
-    - Weekly visits is the strongest predictor of return visits (1)
-    - Pickups in last 90 days is the second most important factor
-    - Recent pickup activity strongly influences predictions
-    - Time since first visit has a smaller but significant effect
-    """)
 
 def prediction_page():
     st.markdown("<h2 style='color: #33aaff;'>Client Return Prediction</h2>", unsafe_allow_html=True)
@@ -324,14 +128,6 @@ def prediction_page():
                          f"{probability:.1%}",
                          delta="Confidence level")
             
-            with col_expl:
-                st.markdown("""
-                **Interpretation**:
-                - <span style='color: green;'>1 (Will Return)</span>: Probability ≥ 50%
-                - <span style='color: red;'>0 (Will Not Return)</span>: Probability < 50%
-                - Threshold can be adjusted for sensitivity
-                """, unsafe_allow_html=True)
-            
             # Visual indicator
             if prediction[0] == 1:
                 st.success("✅ This client is likely to return within 3 months (prediction = 1)")
@@ -340,11 +136,6 @@ def prediction_page():
                 
         except Exception as e:
             st.error(f"Prediction failed: {str(e)}")
-
-    # Google Sheets integration
-    st.markdown("---")
-    st.subheader("Data Integration Status")
-    connect_to_google_sheets()
 
 # --- Main App Logic ---
 display_header()
