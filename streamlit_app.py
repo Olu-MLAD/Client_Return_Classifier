@@ -243,13 +243,7 @@ def xai_insights_page():
 
 def prediction_page():
     st.markdown("<h2 style='color: #33aaff;'>Client Return Prediction</h2>", unsafe_allow_html=True)
-    st.markdown("""
-    <div style='background-color: #f0f0f0; padding: 15px; border-radius: 5px; margin-bottom: 20px;'>
-    <b>Remember:</b><br>
-    • <span style='color: green;'>1 = Will Return</span> (probability ≥ 50%)<br>
-    • <span style='color: red;'>0 = Will Not Return</span> (probability < 50%)
-    </div>
-    """, unsafe_allow_html=True)
+    
 
     # Load model
     with st.spinner("Loading prediction model..."):
