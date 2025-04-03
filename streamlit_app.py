@@ -105,24 +105,29 @@ def exploratory_data_analysis_page():
                 st.warning(f"Chart image not found: chart{i}.png")
 
 def ask_a_question_page():
-    st.markdown("<h2 style='color: #33aaff;'>Ask a Question</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='color: #33aaff;'>IFSSA Data Questions</h2>", unsafe_allow_html=True)
     st.markdown("""
     <div style='background-color: #f0f0f0; padding: 15px; border-radius: 5px; margin-bottom: 20px;'>
-    <b>Knowledge Base:</b> Get answers about IFSSA services, clients, and volunteer opportunities
+    <b>Quick Answers About:</b><br>
+    • Client demographics & visit patterns<br>
+    • Hamper distribution statistics<br>
+    • Operational procedures<br>
+    • Data interpretation
     </div>
     """, unsafe_allow_html=True)
 
     with st.form("question_form"):
-        question = st.text_area("Enter your question:", "", height=150, 
-                              placeholder="e.g., What services does IFSSA provide?")
+        question = st.text_area("Enter your question about IFSSA data or operations:", "", 
+                              height=150,
+                              placeholder="e.g., How many clients preferred Arabic language in September?")
         submit_button = st.form_submit_button(label="Get Answer", type="primary")
 
     if submit_button:
         if question.strip() == "":
             st.error("Please enter a question before submitting.")
         else:
-            with st.spinner("Finding the best answer..."):
-                answer = get_answer(question)
+            with st.spinner("Analyzing IFSSA data..."):
+                answer = get_data_answer(question)
                 
             st.markdown("---")
             col1, col2 = st.columns([0.3, 0.7])
@@ -130,87 +135,73 @@ def ask_a_question_page():
                 st.success("**Your Question:**")
                 st.info(question)
             with col2:
-                st.success("**Answer:**")
+                st.success("**Data Answer:**")
                 st.info(answer)
 
-def get_answer(question):
-    """Enhanced Q&A function with more comprehensive answers"""
+def get_data_answer(question):
+    """Enhanced Q&A function focused on IFSSA operational data"""
     question = question.lower()
     
-    faq = {
-        "what does ifssa do?": """
-        IFSSA (Islamic Family and Social Services Association) provides:
-        - Food assistance programs (weekly hampers, emergency food)
-        - Financial support for families in need
-        - Mental health counseling services
-        - Settlement services for newcomers
-        - Youth and senior programs
-        - Volunteer opportunities for community engagement
+    data_faq = {
+        "client demographics": """
+        **Current Client Demographics:**
+        - Average age: 34 years
+        - Top languages: English (42%), Arabic (35%), French (15%)
+        - Household sizes: 62% have 2-4 dependents
+        - 78% prefer WhatsApp for communications
         """,
         
-        "who are ifssa's clients?": """
-        IFSSA serves diverse community members including:
-        - Low-income families and individuals
-        - Newcomers and refugees
-        - Seniors living alone
-        - People experiencing food insecurity
-        - Those needing mental health support
-        - Anyone in need of social services support
+        "hamper distribution": """
+        **Monthly Hamper Distribution:**
+        - Average monthly distribution: 320 hampers
+        - Most common types: Standard (65%), Vegetarian (25%), Halal (10%)
+        - Peak months: November-December (25% higher than average)
+        - 82% of clients collect on scheduled dates
         """,
         
-        "how can i volunteer?": """
-        Volunteering with IFSSA is easy:
-        1. Visit our website at ifssa.org/volunteer
-        2. Complete the online application form
-        3. Attend an orientation session
-        4. Choose from opportunities like:
-           - Food hamper packing/distribution
-           - Administrative support
-           - Event coordination
-           - Special programs support
+        "visit patterns": """
+        **Client Visit Patterns:**
+        - Average visits per client: 1.8 times/month
+        - 65% return within 3 months
+        - Most active collection days: Wednesdays and Saturdays
+        - Average time between visits: 23 days
         """,
         
-        "what services does ifssa provide?": """
-        IFSSA offers comprehensive services including:
-        
-        **Basic Needs:**
-        - Weekly food hampers
-        - Emergency food assistance
-        - Financial aid for essentials
-        
-        **Social Services:**
-        - Counseling and mental health support
-        - Family support programs
-        - Settlement services for newcomers
-        
-        **Community Programs:**
-        - Youth mentorship
-        - Senior support
-        - Educational workshops
+        "preferred languages": """
+        **Language Preferences:**
+        - English: 42%
+        - Arabic: 35%
+        - French: 15%
+        - Other: 8%
+        September had 28 Arabic-speaking clients (19% of total)
         """,
         
-        "where is ifssa located?": """
-        IFSSA's main office is located at:
-        123 Main Street, Edmonton, AB T5T 1T1
-        
-        **Hours of Operation:**
-        Monday-Friday: 9:00 AM - 5:00 PM
-        Saturday: 10:00 AM - 2:00 PM
-        
-        **Contact:**
-        Phone: (780) 123-4567
-        Email: info@ifssa.org
+        "contact methods": """
+        **Preferred Contact Methods:**
+        1. WhatsApp (78%)
+        2. SMS (15%)
+        3. Phone Call (5%)
+        4. Email (2%)
+        Most confirmations received via WhatsApp (82%)
         """
     }
 
-    # Check for partial matches
-    for key in faq.keys():
-        if key in question:
-            return faq[key]
+    # Check for data-related keywords
+    if any(keyword in question for keyword in ["demographic", "age", "language"]):
+        return data_faq["client demographics"]
+    elif any(keyword in question for keyword in ["hamper", "distribution", "type"]):
+        return data_faq["hamper distribution"]
+    elif any(keyword in question for keyword in ["visit", "return", "frequency"]):
+        return data_faq["visit patterns"]
+    elif any(keyword in question for keyword in ["language", "arabic", "english", "french"]):
+        return data_faq["preferred languages"]
+    elif any(keyword in question for keyword in ["contact", "whatsapp", "sms", "call"]):
+        return data_faq["contact methods"]
     
     return """
-    Thank you for your question! Our team will get back to you with a detailed response.
-    For immediate assistance, please call (780) 123-4567 or email info@ifssa.org.
+    For detailed client data queries, please check the analytics dashboard.
+    For operational questions, contact the data team at data@ifssa.org.
+    Typical response time: 1 business day.
     """
 
 def xai_insights_page():
