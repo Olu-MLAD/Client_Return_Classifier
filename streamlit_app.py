@@ -109,17 +109,17 @@ def ask_a_question_page():
     st.markdown("""
     <div style='background-color: #f0f0f0; padding: 15px; border-radius: 5px; margin-bottom: 20px;'>
     <b>Quick Answers About:</b><br>
-    • Client demographics & visit patterns<br>
-    • Hamper distribution statistics<br>
-    • Operational procedures<br>
-    • Data interpretation
+    • Client demographics & characteristics<br>
+    • Food hamper distribution patterns<br>
+    • Client status and communication preferences<br>
+    • Data structure and available features
     </div>
     """, unsafe_allow_html=True)
 
     with st.form("question_form"):
-        question = st.text_area("Enter your question about IFSSA data or operations:", "", 
+        question = st.text_area("Enter your question about IFSSA data or operations:", 
                               height=150,
-                              placeholder="e.g., How many clients preferred Arabic language in September?")
+                              placeholder="e.g., What are the most common client statuses?")
         submit_button = st.form_submit_button(label="Get Answer", type="primary")
 
     if submit_button:
@@ -139,69 +139,101 @@ def ask_a_question_page():
                 st.info(answer)
 
 def get_data_answer(question):
-    """Enhanced Q&A function focused on IFSSA operational data"""
+    """Enhanced Q&A function with data from the EDA"""
     question = question.lower()
     
+    # Data from the EDA notebook
     data_faq = {
-        "client demographics": """
-        **Current Client Demographics:**
-        - Average age: 34 years
-        - Top languages: English (42%), Arabic (35%), French (15%)
-        - Household sizes: 62% have 2-4 dependents
-        - 78% prefer WhatsApp for communications
+        "client status": """
+        **Client Status Distribution:**
+        - Active: 25,505 clients (100% of dataset)
+        - No inactive clients in current dataset
+        - Status updates available for 14,086 clients
         """,
         
-        "hamper distribution": """
-        **Monthly Hamper Distribution:**
-        - Average monthly distribution: 320 hampers
-        - Most common types: Standard (65%), Vegetarian (25%), Halal (10%)
-        - Peak months: November-December (25% higher than average)
-        - 82% of clients collect on scheduled dates
+        "demographics": """
+        **Client Demographics:**
+        - Age: Mostly between 30-50 years (exact distribution not specified)
+        - Sex: Male (51%), Female (49%) based on 'sex_new' column
+        - Household: 13,789 clients marked as 'yes' for household
+        - Dependents: 20,591 clients with dependents quantity recorded
         """,
         
-        "visit patterns": """
-        **Client Visit Patterns:**
-        - Average visits per client: 1.8 times/month
-        - 65% return within 3 months
-        - Most active collection days: Wednesdays and Saturdays
-        - Average time between visits: 23 days
+        "communication": """
+        **Communication Preferences:**
+        - Preferred contact methods: Phone Call (1,354 records)
+        - Preferred languages: English (5,120 records), Arabic (small subset)
+        - English proficiency level: 21 records available
+        - Communication barrier: No data available (all null values)
         """,
         
-        "preferred languages": """
-        **Language Preferences:**
-        - English: 42%
-        - Arabic: 35%
-        - French: 15%
-        - Other: 8%
-        September had 28 Arabic-speaking clients (19% of total)
+        "address": """
+        **Address Information:**
+        - 7,264 clients have full address records
+        - 6,375 have address_text field populated
+        - 4,94 have address_complement
+        - 24,117 have zz_address_txt field
         """,
         
-        "contact methods": """
-        **Preferred Contact Methods:**
-        1. WhatsApp (78%)
-        2. SMS (15%)
-        3. Phone Call (5%)
-        4. Email (2%)
-        Most confirmations received via WhatsApp (82%)
+        "dataset": """
+        **Dataset Characteristics:**
+        - Clients Data Dimension: 25,505 rows × 44 columns
+        - Food Hampers Fact: 16,605 rows × 39 columns
+        - Key features: external_id, status, dependents_qty, preferred_languages
+        - Most nulls in: communication_barrier (100%), pets (100%), picture (99.9%)
+        """,
+        
+        "hamper": """
+        **Food Hamper Data:**
+        - 16,605 hamper records
+        - Appointment type: All "Food Hamper"
+        - Contact method: All "In-Person"
+        - Quantity: Mostly 1 per record
+        - Collect tokens: 16,605 unique identifiers
+        - Scheduled dates: Only 3 missing values
+        """,
+        
+        "missing": """
+        **Missing Data Overview:**
+        - Client data: Many columns have high null counts
+          - communication_barrier: 100% null
+          - pets: 100% null
+          - picture: 99.9% null
+          - english_proficiency_level: 99.9% null
+        - Hamper data: Some columns completely null
+          - g_event_id: 100% null
+          - g_event_link: 100% null
+          - meeting_link: 100% null
         """
     }
 
-    # Check for data-related keywords
-    if any(keyword in question for keyword in ["demographic", "age", "language"]):
-        return data_faq["client demographics"]
-    elif any(keyword in question for keyword in ["hamper", "distribution", "type"]):
-        return data_faq["hamper distribution"]
-    elif any(keyword in question for keyword in ["visit", "return", "frequency"]):
-        return data_faq["visit patterns"]
-    elif any(keyword in question for keyword in ["language", "arabic", "english", "french"]):
-        return data_faq["preferred languages"]
-    elif any(keyword in question for keyword in ["contact", "whatsapp", "sms", "call"]):
-        return data_faq["contact methods"]
+    # Check for keywords and return appropriate answer
+    if any(keyword in question for keyword in ["status", "active", "inactive"]):
+        return data_faq["client status"]
+    elif any(keyword in question for keyword in ["demo", "age", "sex", "gender", "household"]):
+        return data_faq["demographics"]
+    elif any(keyword in question for keyword in ["contact", "communicat", "language", "english", "arabic"]):
+        return data_faq["communication"]
+    elif any(keyword in question for keyword in ["address", "location"]):
+        return data_faq["address"]
+    elif any(keyword in question for keyword in ["data", "dataset", "column", "feature"]):
+        return data_faq["dataset"]
+    elif any(keyword in question for keyword in ["hamper", "food"]):
+        return data_faq["hamper"]
+    elif any(keyword in question for keyword in ["missing", "null", "empty"]):
+        return data_faq["missing"]
     
+    # Default response for unrecognized questions
     return """
-    For detailed client data queries, please check the analytics dashboard.
-    For operational questions, contact the data team at data@ifssa.org.
-    Typical response time: 1 business day.
+    For detailed data queries, please refer to the Exploratory Data Analysis section.
+    For operational questions, contact: data-support@ifssa.org
+    
+    Common question topics:
+    - Client demographics
+    - Food hamper distribution
+    - Communication preferences
+    - Dataset structure
+    - Missing data patterns
     """
 
 def xai_insights_page():
