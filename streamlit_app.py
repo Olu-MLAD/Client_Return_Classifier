@@ -137,13 +137,35 @@ def prediction_page():
         except Exception as e:
             st.error(f"Prediction failed: {str(e)}")
 
+# Ask a Question Page
+def ask_a_question_page():
+    st.markdown("<h2 style='color: #33aaff;'>Ask a Question</h2>", unsafe_allow_html=True)
+    st.markdown("""
+    <div style='background-color: #f0f0f0; padding: 15px; border-radius: 5px; margin-bottom: 20px;'>
+    <b>If you have any questions or need assistance, feel free to ask below:</b><br>
+    </div>
+    """, unsafe_allow_html=True)
+
+    with st.form("question_form"):
+        # Question form
+        question = st.text_area("Enter your question:", "", height=150)
+        submit_button = st.form_submit_button(label="Submit Question")
+
+    if submit_button:
+        if question.strip() == "":
+            st.error("Please enter a question before submitting.")
+        else:
+            # Simulate the submission of the question
+            st.success(f"Your question has been submitted: {question}")
+            st.info("Our team will get back to you soon!")
+
 # --- Main App Logic ---
 display_header()
 
 # Navigation
 page = st.sidebar.radio(
     "Navigation",
-    ["About", "Exploratory Data Analysis", "XAI Insights", "Make Prediction"],
+    ["About", "Exploratory Data Analysis", "XAI Insights", "Make Prediction", "Ask a Question"],
     index=3
 )
 
@@ -155,6 +177,8 @@ elif page == "XAI Insights":
     xai_insights_page()
 elif page == "Make Prediction":
     prediction_page()
+elif page == "Ask a Question":
+    ask_a_question_page()
 
 # Footer
 st.markdown("---")
