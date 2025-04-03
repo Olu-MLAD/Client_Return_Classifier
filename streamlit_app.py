@@ -58,9 +58,7 @@ def display_header():
         <p style='text-align: center; font-size: 1.1rem;'>
         Predict which clients will return within 3 months using statistically validated features
         </p>
-        <p style='text-align: center; font-size: 0.9rem; color: #666;'>
-        <b>Model Output:</b> 1 = Will Return, 0 = Will Not Return
-        </p>
+        
         """,
         unsafe_allow_html=True
     )
