@@ -376,9 +376,8 @@ st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; padding: 20px;'>
-    <p>IFSSA Client Return Predictor • v2.1</p>
-    <p><small>Model outputs: 1 = Return, 0 = No Return | For support contact: support@ifssa.org</small></p>
-    </div>
+    <p>IFSSA Client Return Predictor </p>
+    
     """,
     unsafe_allow_html=True
 )
