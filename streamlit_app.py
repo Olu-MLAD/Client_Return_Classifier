@@ -12,73 +12,12 @@ from datetime import datetime
 from PIL import Image
 import shap
 from io import BytesIO
-from sentence_transformers import SentenceTransformer, util
-from transformers import pipeline
 
 # Set page configuration
 st.set_page_config(
     layout="wide",
     page_title="IFSSA Return Predictor"
 )
-
-# --- RAG Setup ---
-@st.cache_resource
-def load_rag_components():
-    """Load RAG components and sample data"""
-    # Sample data - replace with your actual data loading logic
-    sample_data = {
-        "client_list": ["Client A", "Client B"],
-        "sex_new": ["Female", "Male"],
-        "new_age_years": [35, 42],
-        "quantity": [2, 1],
-        "hamper_type": ["Standard", "Vegetarian"],
-        "pickup_month": ["January", "February"],
-        "pickup_date": ["2023-01-15", "2023-02-20"],
-        "household": [4, 2],
-        "dependents_qty": [2, 1]
-    }
-    df = pd.DataFrame(sample_data)
-    
-    # Generate transaction narrative
-    transaction_narrative = "Here are recent client transactions:\n"
-    for _, row in df.iterrows():
-        transaction_narrative += (
-            f"Client {row['client_list']} ({row['sex_new']}, Age {row['new_age_years']}) picked up "
-            f"{row['quantity']} {row['hamper_type']} hamper(s) in {row['pickup_month']} "
-            f"on {row['pickup_date']}. Household size: {row['household']} with {row['dependents_qty']} dependents.\n"
-        )
-
-    # Define IFSSA knowledge base
-    documents = {
-        "doc1": "IFSSA provides food hampers to families in need, ensuring culturally appropriate meals.",
-        "doc2": transaction_narrative,
-        "doc3": "Donors can contribute via online payments, bank transfers, or in-person donations.",
-        "doc4": "Volunteers assist in packing and distributing hampers every Saturday."
-    }
-
-    # Initialize models
-    embedder = SentenceTransformer('all-MiniLM-L6-v2')
-    generator = pipeline("text2text-generation", model="google/flan-t5-base")  # Using smaller model for demo
-    
-    return embedder, generator, documents
-
-def retrieve_context(query, embedder, documents, top_k=1):
-    doc_embeddings = {doc_id: embedder.encode(text, convert_to_tensor=True) for doc_id, text in documents.items()}
-    query_embedding = embedder.encode(query, convert_to_tensor=True)
-    scores = {doc_id: util.pytorch_cos_sim(query_embedding, emb).item() for doc_id, emb in doc_embeddings.items()}
-    sorted_docs = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-    return "\n\n".join(documents[doc_id] for doc_id, _ in sorted_docs[:top_k])
-
-def rag_chatbot(query, embedder, generator, documents):
-    context = retrieve_context(query, embedder, documents, top_k=2)
-    prompt = (
-        "You are Rahim, an assistant for IFSSA, answering questions about food distribution, donations, and volunteer work.\n\n"
-        f"Context:\n{context}\n\n"
-        f"User Query: {query}\n\n"
-        "Answer politely and professionally:"
-    )
-    response = generator(prompt, max_length=200, do_sample=True, temperature=0.7)
-    return response[0]['generated_text'].strip()
 
 # --- Helper Functions ---
 @st.cache_resource
@@ -407,54 +346,13 @@ def prediction_page():
     st.subheader("Data Integration Status")
     connect_to_google_sheets()
 
-def chat_with_rahim_page():
-    st.markdown("<h2 style='color: #33aaff;'>Chat with Rahim</h2>", unsafe_allow_html=True)
-    st.markdown("""
-    <div style='background-color: #f0f0f0; padding: 15px; border-radius: 5px; margin-bottom: 20px;'>
-    <b>RAD Chat Assistant:</b><br>
-    • Ask questions about IFSSA services, donations, or volunteer opportunities<br>
-    • Get information about client transactions and food distribution<br>
-    • Powered by AI with access to IFSSA knowledge base
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Load RAG components
-    with st.spinner("Loading Rahim's knowledge..."):
-        embedder, generator, documents = load_rag_components()
-    
-    # Initialize chat history
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
-
-    # Display chat messages from history on app rerun
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-
-    # Accept user input
-    if prompt := st.chat_input("Ask Rahim about IFSSA..."):
-        # Add user message to chat history
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        # Display user message in chat message container
-        with st.chat_message("user"):
-            st.markdown(prompt)
-        
-        # Display assistant response in chat message container
-        with st.chat_message("assistant"):
-            with st.spinner("Rahim is thinking..."):
-                response = rag_chatbot(prompt, embedder, generator, documents)
-            st.markdown(response)
-        
-        # Add assistant response to chat history
-        st.session_state.messages.append({"role": "assistant", "content": response})
-
 # --- Main App Logic ---
 display_header()
 
 # Navigation
 page = st.sidebar.radio(
     "Navigation",
-    ["About", "Exploratory Data Analysis", "XAI Insights", "Make Prediction", "Chat with Rahim"],
+    ["About", "Exploratory Data Analysis", "XAI Insights", "Make Prediction"],
     index=3
 )
 
@@ -466,15 +364,13 @@ elif page == "XAI Insights":
     xai_insights_page()
 elif page == "Make Prediction":
     prediction_page()
-elif page == "Chat with Rahim":
-    chat_with_rahim_page()
 
 # Footer
 st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; padding: 20px;'>
-    <p>IFSSA Client Return Predictor • v1.9</p>
+    <p>IFSSA Client Return Predictor • v1.8</p>
     <p><small>Model outputs: 1 = Return, 0 = No Return | For support contact: support@ifssa.org</small></p>
     </div>
     """,
