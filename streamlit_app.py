@@ -55,6 +55,45 @@ def display_header():
         unsafe_allow_html=True
     )
 
+    def about_page():
+    st.markdown("""
+    ## About This Tool
+    
+    This application helps IFSSA predict which clients are likely to return for services 
+    within the next 3 months using machine learning.
+    
+    ### Model Interpretation
+    - **1**: Client will return within 3 months (probability ≥ 50%)
+    - **0**: Client will not return within 3 months (probability < 50%)
+    
+    ### How It Works
+    1. Staff enter client visit information
+    2. The system analyzes patterns from historical data
+    3. Predictions are made with clear 1/0 outputs
+    4. Probability scores show confidence level
+    
+    ### Key Benefits
+    - Clear binary output (1/0) with explanation
+    - Probability scores for nuanced understanding
+    - Feature importance explanations
+    - Easy integration with existing systems
+    """)
+    
+    def exploratory_data_analysis_page():
+    st.markdown("<h2 style='color: #33aaff;'>Exploratory Data Analysis</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #666;'>Exploring the dataset to understand structure, patterns, and insights.</p>", unsafe_allow_html=True)
+    
+    # Display Pre-generated Charts
+    cols = st.columns(2)
+    for i in range(1, 8):
+        try:
+            img = Image.open(f"chart{i}.png")
+            with cols[(i-1) % 2]:
+                st.image(img, caption=f"Chart {i}", use_container_width=True)
+        except FileNotFoundError:
+            with cols[(i-1) % 2]:
+                st.warning(f"Chart image not found: chart{i}.png")
+
 # Ask a Question Page with Simple Answers
 def ask_a_question_page():
     st.markdown("<h2 style='color: #33aaff;'>Ask a Question</h2>", unsafe_allow_html=True)
@@ -123,6 +162,94 @@ def xai_insights_page():
     actual_vs_predicted.plot(kind='bar', x='Category', ax=ax, color=['green', 'red'])
     ax.set_title("Predicted vs. Actual Client Returns")
     st.pyplot(fig)
+
+def prediction_page():
+    st.markdown("<h2 style='color: #33aaff;'>Client Return Prediction</h2>", unsafe_allow_html=True)
+    st.markdown("""
+    <div style='background-color: #f0f0f0; padding: 15px; border-radius: 5px; margin-bottom: 20px;'>
+    <b>Remember:</b><br>
+    • <span style='color: green;'>1 = Will Return</span> (probability ≥ 50%)<br>
+    • <span style='color: red;'>0 = Will Not Return</span> (probability < 50%)
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Load model
+    with st.spinner("Loading prediction model..."):
+        model = load_model()
+    if model is None:
+        st.stop()
+
+    # Input form with features in specified order
+    with st.form("prediction_form"):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            pickup_week = st.number_input("Pickup Week (1-52):", min_value=1, max_value=52, value=1)
+            pickup_count_last_14_days = st.number_input("Pickups in last 14 days:", min_value=0, value=0)
+            pickup_count_last_30_days = st.number_input("Pickups in last 30 days:", min_value=0, value=0)
+            
+        with col2:
+            pickup_count_last_90_days = st.number_input("Pickups in last 90 days:", min_value=0, value=0)
+            time_since_first_visit = st.number_input("Time Since First Visit (days):", min_value=1, max_value=366, value=30)
+            weekly_visits = st.number_input("Weekly Visits:", min_value=0, value=3)
+
+        submitted = st.form_submit_button("Predict Return Probability", type="primary")
+
+    # Handle form submission
+    if submitted:
+        try:
+            input_data = pd.DataFrame([[ 
+                pickup_week,
+                pickup_count_last_14_days,
+                pickup_count_last_30_days,
+                pickup_count_last_90_days,
+                time_since_first_visit,
+                weekly_visits
+            ]], columns=[
+                'pickup_week',
+                'pickup_count_last_14_days',
+                'pickup_count_last_30_days',
+                'pickup_count_last_90_days',
+                'time_since_first_visit',
+                'weekly_visits'
+            ])
+
+            with st.spinner("Making prediction..."):
+                prediction = model.predict(input_data)
+                probability = model.predict_proba(input_data)[0][1]
+            
+            # Display results
+            st.markdown("---")
+            st.markdown("<h3 style='color: #ff33aa;'>Prediction Result</h3>", unsafe_allow_html=True)
+            
+            col_pred, col_prob, col_expl = st.columns([1,1,2])
+            with col_pred:
+                st.metric("Binary Prediction", 
+                         f"{prediction[0]} - {'Will Return' if prediction[0] == 1 else 'Will Not Return'}",
+                         delta="Positive (1)" if prediction[0] == 1 else "Negative (0)",
+                         delta_color="normal")
+            
+            with col_prob:
+                st.metric("Return Probability", 
+                         f"{probability:.1%}",
+                         delta="Confidence level")
+            
+            with col_expl:
+                st.markdown("""
+                **Interpretation**:
+                - <span style='color: green;'>1 (Will Return)</span>: Probability ≥ 50%
+                - <span style='color: red;'>0 (Will Not Return)</span>: Probability < 50%
+                - Threshold can be adjusted for sensitivity
+                """, unsafe_allow_html=True)
+            
+            # Visual indicator
+            if prediction[0] == 1:
+                st.success("✅ This client is likely to return within 3 months (prediction = 1)")
+            else:
+                st.warning("⚠️ This client is unlikely to return within 3 months (prediction = 0)")
+                
+        except Exception as e:
+            st.error(f"Prediction failed: {str(e)}")
 
 # --- Main App Logic ---
 display_header()
