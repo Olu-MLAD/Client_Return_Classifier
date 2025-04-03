@@ -321,8 +321,8 @@ def prediction_page():
             with col_expl:
                 st.markdown("""
                 **Interpretation**:
-                - <span style='color: green;'>1 (Will Return)</span>: Probability ≥ 50%
-                - <span style='color: red;'>0 (Will Not Return)</span>: Probability < 50%
+                - <span style='color: green;'>1 (Will Return)</span>
+                - <span style='color: red;'>0 (Will Not Return)</span>
                 """, unsafe_allow_html=True)
             
             # Visual indicator
