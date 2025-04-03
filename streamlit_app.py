@@ -139,101 +139,99 @@ def ask_a_question_page():
                 st.info(answer)
 
 def get_data_answer(question):
-    """Enhanced Q&A function with data from the EDA"""
-    question = question.lower()
+    """Enhanced Q&A function with improved matching and display"""
+    question = question.lower().strip()
     
-    # Data from the EDA notebook
-    data_faq = {
-        "client status": """
-        **Client Status Distribution:**
-        - Active: 25,505 clients (100% of dataset)
-        - No inactive clients in current dataset
-        - Status updates available for 14,086 clients
-        """,
-        
-        "demographics": """
-        **Client Demographics:**
-        - Age: Mostly between 30-50 years (exact distribution not specified)
-        - Sex: Male (51%), Female (49%) based on 'sex_new' column
-        - Household: 13,789 clients marked as 'yes' for household
-        - Dependents: 20,591 clients with dependents quantity recorded
-        """,
-        
-        "communication": """
-        **Communication Preferences:**
-        - Preferred contact methods: Phone Call (1,354 records)
-        - Preferred languages: English (5,120 records), Arabic (small subset)
-        - English proficiency level: 21 records available
-        - Communication barrier: No data available (all null values)
-        """,
-        
-        "address": """
-        **Address Information:**
-        - 7,264 clients have full address records
-        - 6,375 have address_text field populated
-        - 4,94 have address_complement
-        - 24,117 have zz_address_txt field
-        """,
-        
-        "dataset": """
-        **Dataset Characteristics:**
-        - Clients Data Dimension: 25,505 rows × 44 columns
-        - Food Hampers Fact: 16,605 rows × 39 columns
-        - Key features: external_id, status, dependents_qty, preferred_languages
-        - Most nulls in: communication_barrier (100%), pets (100%), picture (99.9%)
-        """,
-        
-        "hamper": """
-        **Food Hamper Data:**
-        - 16,605 hamper records
-        - Appointment type: All "Food Hamper"
-        - Contact method: All "In-Person"
-        - Quantity: Mostly 1 per record
-        - Collect tokens: 16,605 unique identifiers
-        - Scheduled dates: Only 3 missing values
-        """,
-        
-        "missing": """
-        **Missing Data Overview:**
-        - Client data: Many columns have high null counts
-          - communication_barrier: 100% null
-          - pets: 100% null
-          - picture: 99.9% null
-          - english_proficiency_level: 99.9% null
-        - Hamper data: Some columns completely null
-          - g_event_id: 100% null
-          - g_event_link: 100% null
-          - meeting_link: 100% null
-        """
+    # Data from the EDA notebook with improved formatting
+    data_responses = {
+        "status": {
+            "keywords": ["status", "active", "inactive"],
+            "answer": """
+            **Client Status Distribution:**
+            - All 25,505 clients are marked as 'Active' in the dataset
+            - No inactive clients currently recorded
+            - Status updates available for 14,086 clients (55% of total)
+            """
+        },
+        "demographics": {
+            "keywords": ["demo", "age", "sex", "gender", "household", "dependent"],
+            "answer": """
+            **Client Demographics:**
+            - Sex Distribution (from 'sex_new' column):
+              - Male: ~51%
+              - Female: ~49%
+            - Household Status: 13,789 clients (54%) marked as 'yes'
+            - Dependents: 20,591 clients (81%) with dependents recorded
+            - Average dependents per client: 1.0 (from sample data)
+            """
+        },
+        "communication": {
+            "keywords": ["contact", "communicat", "language", "english", "arabic", "prefer"],
+            "answer": """
+            **Communication Preferences:**
+            - Primary Contact Methods:
+              - Phone Call: 1,354 records
+              - Other methods not widely recorded
+            - Languages:
+              - English: 5,120 records
+              - Arabic: Small subset (exact count not specified)
+            - English Proficiency: Only 21 records available
+            """
+        },
+        "address": {
+            "keywords": ["address", "location", "where"],
+            "answer": """
+            **Address Information Completeness:**
+            - Full address records: 7,264 clients (28%)
+            - address_text field: 6,375 clients (25%)
+            - address_complement: 494 clients (2%)
+            - zz_address_txt: 24,117 clients (95%)
+            """
+        },
+        "dataset": {
+            "keywords": ["data", "dataset", "column", "feature", "structure"],
+            "answer": """
+            **Dataset Characteristics:**
+            - Clients Data Dimension: 25,505 rows × 44 columns
+            - Food Hampers Fact: 16,605 rows × 39 columns
+            - Key Features Available:
+              - Client IDs, status, dependents
+              - Contact preferences, languages
+              - Address information
+            """
+        },
+        "missing": {
+            "keywords": ["missing", "null", "empty", "complete"],
+            "answer": """
+            **Data Completeness Issues:**
+            - Client Data (100% null columns):
+              - communication_barrier
+              - pets
+              - organization_signature
+            - Hamper Data (100% null columns):
+              - g_event_id
+              - g_event_link
+              - meeting_link
+            - Picture field: 99.9% null (only 3 records)
+            """
+        }
     }
 
-    # Check for keywords and return appropriate answer
-    if any(keyword in question for keyword in ["status", "active", "inactive"]):
-        return data_faq["client status"]
-    elif any(keyword in question for keyword in ["demo", "age", "sex", "gender", "household"]):
-        return data_faq["demographics"]
-    elif any(keyword in question for keyword in ["contact", "communicat", "language", "english", "arabic"]):
-        return data_faq["communication"]
-    elif any(keyword in question for keyword in ["address", "location"]):
-        return data_faq["address"]
-    elif any(keyword in question for keyword in ["data", "dataset", "column", "feature"]):
-        return data_faq["dataset"]
-    elif any(keyword in question for keyword in ["hamper", "food"]):
-        return data_faq["hamper"]
-    elif any(keyword in question for keyword in ["missing", "null", "empty"]):
-        return data_faq["missing"]
+    # Check for matching keywords
+    for category in data_responses.values():
+        if any(keyword in question for keyword in category["keywords"]):
+            return category["answer"]
     
-    # Default response for unrecognized questions
+    # Default response with markdown formatting
     return """
-    For detailed data queries, please refer to the Exploratory Data Analysis section.
-    For operational questions, contact: data-support@ifssa.org
+    **Common Questions You Could Ask:**
+    1. "What percentage of clients are active?"
+    2. "How many clients have dependents?"
+    3. "What are the communication preferences?"
+    4. "Which columns have missing data?"
+    5. "What's the gender distribution of clients?"
     
-    Common question topics:
-    - Client demographics
-    - Food hamper distribution
-    - Communication preferences
-    - Dataset structure
-    - Missing data patterns
+    For operational questions, contact: data-support@ifssa.org
     """
 
 def xai_insights_page():
