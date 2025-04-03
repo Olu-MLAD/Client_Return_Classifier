@@ -323,7 +323,6 @@ def prediction_page():
                 **Interpretation**:
                 - <span style='color: green;'>1 (Will Return)</span>: Probability ≥ 50%
                 - <span style='color: red;'>0 (Will Not Return)</span>: Probability < 50%
-                - Threshold can be adjusted for sensitivity
                 """, unsafe_allow_html=True)
             
             # Visual indicator
