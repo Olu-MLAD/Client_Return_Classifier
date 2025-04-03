@@ -213,7 +213,6 @@ def get_answer(question):
     For immediate assistance, please call (780) 123-4567 or email info@ifssa.org.
     """
 
-# XAI Insights Page with Additional Charts
 def xai_insights_page():
     st.markdown("<h2 style='color: #33aaff;'>Explainable AI (XAI) Insights</h2>", unsafe_allow_html=True)
 
@@ -237,7 +236,8 @@ def xai_insights_page():
     sns.boxplot(data=[[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.2, 0.3, 0.1]], ax=ax)
     ax.set_title("SHAP Value Distribution for Key Features")
     st.pyplot(fig)
-     # New Chart: Predicted vs. Actual Returns
+
+    # New Chart: Predicted vs. Actual Returns
     st.write("### Predicted vs. Actual Returns")
     actual_vs_predicted = pd.DataFrame({
         'Category': ['Returned', 'Not Returned'],
@@ -312,14 +312,19 @@ def prediction_page():
             col_pred, col_prob, col_expl = st.columns([1,1,2])
             with col_pred:
                 st.metric("Binary Prediction", 
-                         f"{prediction[0]} - {'Will Return' if prediction[0] == 1 else 'Will Not Return'}",
-                         delta="Positive (1)" if prediction[0] == 1 else "Negative (0)",
-                         delta_color="normal")
+                         f"{prediction[0]} - {'Will Return' if prediction[0] == 1 else 'Will Not Return'}")
             
             with col_prob:
                 st.metric("Return Probability", 
-                         f"{probability:.1%}",
-                         delta="Confidence level")
+                         f"{probability:.1%}")
+            
+            with col_expl:
+                st.markdown("""
+                **Interpretation**:
+                - <span style='color: green;'>1 (Will Return)</span>: Probability ≥ 50%
+                - <span style='color: red;'>0 (Will Not Return)</span>: Probability < 50%
+                - Threshold can be adjusted for sensitivity
+                """, unsafe_allow_html=True)
             
             # Visual indicator
             if prediction[0] == 1:
