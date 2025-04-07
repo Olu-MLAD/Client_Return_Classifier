@@ -21,6 +21,10 @@ We developed a Random Forest classifier that:
 - Delivers probability scores (0-100%)
 - Includes explainable AI insights
 
+### Live Application
+
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://clientreturnclassifier.streamlit.app/)
+
 ### Repository Structure
 
 The repository contains:
