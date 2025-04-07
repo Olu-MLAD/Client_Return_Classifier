@@ -3,7 +3,7 @@
      height="auto"/>
 </p>
 
-# <h1 align="center" id="heading">IFSSA Client Return Prediction - Team Members:Gift Ajayi, Moyosore Akinola, Oluwaseun Ademokun, Abiola Bakare, Abi Afolabi</h1>
+# <h1 align="center" id="heading">IFSSA Client Return Prediction</h1>
 
 ### PROJECT TITLE: IFSSA Client Return Prediction
 
@@ -40,3 +40,14 @@ The repository contains:
 ```bash
 git clone [repository-url]
 cd ifssa-return-predictor
+
+### Team Members
+Our team consists of the following members:
+
+[Gift Ajayi](https://www.linkedin.com/in/gift-ajayi-036329ba/)
+[Moyosore Akinola](https://www.linkedin.com/in/marianmgbaja/)
+[Abiola Bakare](https://www.linkedin.com/in/marianmgbaja/)
+[Oluwaseun Ademokun](https://www.linkedin.com/in/marianmgbaja/)
+[Abi Afolabi](https://www.linkedin.com/in/marianmgbaja/)
+[Uchenna Mgbaja](https://www.linkedin.com/in/marianmgbaja/)
+
