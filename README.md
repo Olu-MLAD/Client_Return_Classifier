@@ -34,13 +34,6 @@ The repository contains:
 - `data/`:IFSSA dataset
 - `images/`: Logos and visualizations
 
-### Getting Started
-
-1. Clone repository:
-```bash
-git clone [repository-url]
-cd ifssa-return-predictor
-
 ### Team Members
 Our team consists of the following members:
 
@@ -49,5 +42,11 @@ Our team consists of the following members:
 [Abiola Bakare](https://www.linkedin.com/in/marianmgbaja/)
 [Oluwaseun Ademokun](https://www.linkedin.com/in/marianmgbaja/)
 [Abi Afolabi](https://www.linkedin.com/in/marianmgbaja/)
-[Uchenna Mgbaja](https://www.linkedin.com/in/marianmgbaja/)
+
+### Getting Started
+
+1. Clone repository:
+```bash
+git clone [repository-url]
+cd ifssa-return-predictor
 
