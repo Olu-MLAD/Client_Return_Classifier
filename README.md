@@ -39,8 +39,8 @@ Our team consists of the following members:
 
 [Gift Ajayi](https://www.linkedin.com/in/gift-ajayi-036329ba/)
 [Moyosore Akinola](https://www.linkedin.com/in/marianmgbaja/)
-[Abiola Bakare](https://www.linkedin.com/in/marianmgbaja/)
-[Oluwaseun Ademokun](https://www.linkedin.com/in/marianmgbaja/)
+[Abiola Bakare](https://www.linkedin.com/in/theabiolabakare/)
+[Oluwaseun Ademokun](https://www.linkedin.com/in/oluwaseun-ademokun/)
 [Abi Afolabi](https://www.linkedin.com/in/marianmgbaja/)
 
 ### Getting Started
