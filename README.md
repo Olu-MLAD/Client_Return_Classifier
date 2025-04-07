@@ -18,7 +18,6 @@ The IFSSA (Islamic Family and Social Services Association) struggles to predict 
 We developed a Random Forest classifier that:
 - Processes 6 key client visit features
 - Provides binary predictions (1=return, 0=won't return)
-- Delivers probability scores (0-100%)
 - Includes explainable AI insights
 
 ### Live Application
