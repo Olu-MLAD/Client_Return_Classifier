@@ -11,11 +11,7 @@ Welcome to the repository for our Capstone project at Norquest College. This pro
 
 ### Problem Statement
 
-IFSSA currently lacks a data-driven method to:
-- Predict client return patterns
-- Optimize resource allocation
-- Identify at-risk clients
-- Improve service planning
+The IFSSA (Islamic Family and Social Services Association) struggles to predict when and how many clients will return to get hampers, leading to challenges in inventory management, resource allocation, and client retention strategies. This uncertainty affects operational efficiency and limits the ability to tailor the organization’s efforts effectively.
 
 ### Solution
 
