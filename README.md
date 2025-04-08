@@ -37,10 +37,10 @@ The repository contains:
 Our team consists of the following members:
 
 [Gift Ajayi](https://www.linkedin.com/in/gift-ajayi-036329ba/)
-[Moyosore Akinola](https://www.linkedin.com/in/marianmgbaja/)
+[Moyosore Akinola](http://linkedin.com/in/moyosore-akinola2022/)
 [Abiola Bakare](https://www.linkedin.com/in/theabiolabakare/)
 [Oluwaseun Ademokun](https://www.linkedin.com/in/oluwaseun-ademokun/)
-[Abi Afolabi](https://www.linkedin.com/in/marianmgbaja/)
+[Abi Afolabi](http://linkedin.com/in/abimbola-adebowale-25a3a135/)
 
 ### Getting Started
 
