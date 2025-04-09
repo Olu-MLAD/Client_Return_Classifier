@@ -284,13 +284,13 @@ def prediction_page():
         col1, col2 = st.columns(2)
         
         with col1:
-            pickup_week = st.number_input("Pickup Week (1-52):", min_value=1, max_value=52, value=1)
-            pickup_count_last_14_days = st.number_input("Pickups in last 14 days:", min_value=0, value=0)
-            pickup_count_last_30_days = st.number_input("Pickups in last 30 days:", min_value=0, value=0)
+           pickup_week = st.number_input("Pickup Week (1-52):", min_value=1, max_value=52, value=12)
+           pickup_count_last_14_days = st.number_input("Pickups in last 14 days:", min_value=0, value=4)
+           pickup_count_last_30_days = st.number_input("Pickups in last 30 days:", min_value=0, value=8)
             
         with col2:
-            pickup_count_last_90_days = st.number_input("Pickups in last 90 days:", min_value=0, value=0)
-            time_since_first_visit = st.number_input("Time Since First Visit (days):", min_value=1, max_value=366, value=30)
+            pickup_count_last_90_days = st.number_input("Pickups in last 90 days:", min_value=0, value=18)
+            time_since_first_visit = st.number_input("Time Since First Visit (days):", min_value=1, max_value=366, value=300)
             weekly_visits = st.number_input("Weekly Visits:", min_value=0, value=3)
 
         submitted = st.form_submit_button("Predict Return Probability", type="primary")
