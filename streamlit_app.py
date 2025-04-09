@@ -71,8 +71,8 @@ def about_page():
     within the next 3 months using machine learning.
     
     ### Model Interpretation
-    - **1**: Client will return within 3 months (probability ≥ 50%)
-    - **0**: Client will not return within 3 months (probability < 50%)
+    - **1**: Client will return within 3 months 
+    - **0**: Client will not return within 3 months 
     
     ### How It Works
     1. Staff enter client visit information
