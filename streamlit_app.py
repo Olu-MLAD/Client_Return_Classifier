@@ -251,7 +251,7 @@ def xai_insights_page():
 
     # New Chart: SHAP Summary Plot (Example Placeholder)
     # Updated SHAP Summary Plot with Feature Names
-st.write("### SHAP Value Distribution")
+    st.write("### SHAP Value Distribution")
 
     # Example SHAP values (simulate real ones for demo)
     shap_values = pd.DataFrame({
