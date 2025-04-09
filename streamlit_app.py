@@ -250,11 +250,24 @@ def xai_insights_page():
     st.pyplot(fig)
 
     # New Chart: SHAP Summary Plot (Example Placeholder)
-    st.write("### SHAP Value Distribution")
-    fig, ax = plt.subplots(figsize=(8, 5))
-    sns.boxplot(data=[[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.2, 0.3, 0.1]], ax=ax)
-    ax.set_title("SHAP Value Distribution for Key Features")
+    # Updated SHAP Summary Plot with Feature Names
+st.write("### SHAP Value Distribution")
+
+    # Example SHAP values (simulate real ones for demo)
+    shap_values = pd.DataFrame({
+        'pickup_week': [0.1, 0.15, 0.12, 0.08],
+        'pickup_count_last_14_days': [0.3, 0.25, 0.28, 0.32],
+        'pickup_count_last_30_days': [0.2, 0.22, 0.19, 0.21],
+        'time_since_first_visit': [0.18, 0.2, 0.17, 0.19],
+        'weekly_visits': [0.1, 0.09, 0.11, 0.08],
+    })
+    
+    fig, ax = plt.subplots(figsize=(9, 6))
+    sns.boxplot(data=shap_values, orient='h', ax=ax, palette='coolwarm')
+    ax.set_title("SHAP Value Distribution per Feature")
+    ax.set_xlabel("SHAP Value")
     st.pyplot(fig)
+
 
     # New Chart: Predicted vs. Actual Returns
     st.write("### Predicted vs. Actual Returns")
