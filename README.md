@@ -3,7 +3,8 @@
      height="auto"/>
 </p>
 
-# <h1 align="center" id="heading">IFSSA Client Return Prediction</h1>
+# <h1 align="center" id="heading">IFSSA Client Return Prediction- Team Members: Moyosore Akinola, Oluwaseun Ademokun, Abiola Bakare, Gift Ajayi, Abi Afolabi
+</h1>
 
 ### PROJECT TITLE: IFSSA Client Return Prediction
 
